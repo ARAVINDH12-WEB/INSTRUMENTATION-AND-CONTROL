@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-heading: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-serif: 'IBM Plex Serif', serif;
+  --font-sans: 'IBM Plex Sans', sans-serif;
+}
+
+body {
+  background-color: #15130F;
+  color: #EDE6DA;
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Engineering Graph Paper Background */
+.engineering-grid-bg {
+  background-color: #15130F;
+  background-image:
+    linear-gradient(to right, #221E17 1px, transparent 1px),
+    linear-gradient(to bottom, #221E17 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Form Sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #18150F;
+  border: 1px solid #302B22;
+  border-radius: 3px;
+  outline: none;
+  margin: 8px 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  background: #FFB000;
+  cursor: pointer;
+  border: 1px solid #7B5200;
+  box-shadow: 0 0 6px rgba(255, 176, 0, 0.35);
+  transition: transform 0.1s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  background: #FFB000;
+  cursor: pointer;
+  border: 1px solid #7B5200;
+  box-shadow: 0 0 6px rgba(255, 176, 0, 0.35);
+}
+
+/* Motion Rules & Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
