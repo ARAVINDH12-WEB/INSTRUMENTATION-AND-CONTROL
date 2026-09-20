@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Standalone Tank-Level Simulator — ControlForge</title>
+  <meta name="description" content="Simulate open-loop and manual tank level dynamics with inlet flow, gravity outflow, and valve gain sliders.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #sim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    @media (max-width: 992px) {
+      .lab-layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="index.html" class="nav-link active">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot active"></span>
+        <span>SIM // TANK-OPEN</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <a href="index.html" style="color:var(--amber);">SIMULATION SUITE</a>
+        <span>/</span>
+        <span>PROCESS DYNAMICS</span>
+        <span>·</span>
+        <span>GRAVITY DRAINAGE</span>
+      </div>
+      <h1 class="page-title">Standalone Tank-Level Simulator</h1>
+      <p class="page-desc">
+        Explore open-loop mass balance equilibrium. Manipulate upstream supply flow, 
+        gravity drainage resistance, and control valve sizing gain to observe self-regulating level dynamics.
+      </p>
+    </header>
+
+    <div class="lab-layout">
+
+      <!-- Left Controls Panel -->
+      <aside class="panel-box" aria-label="Physical Tank Parameters">
+        <h2 style="font-size: 1.15rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line-soft); padding-bottom: 0.5rem;">
+          Inflow &amp; Drainage Controls
+        </h2>
+
+        <!-- Inlet Flow Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>INLET SUPPLY FLOW (Qin)</span>
+            <span class="val-display" id="disp-inflow">50%</span>
+          </div>
+          <input type="range" id="input-inflow" min="0" max="100" step="1" value="50">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Manual feed valve opening percentage (0–100%).
+          </p>
+        </div>
+
+        <!-- Outflow Base Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>OUTFLOW DRAIN COEFFICIENT</span>
+            <span class="val-display" id="disp-outflow">0.60</span>
+          </div>
+          <input type="range" id="input-outflow" min="0.1" max="1.5" step="0.05" value="0.60">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Gravity discharge coefficient ($Q_{out} = C_{drain} \cdot \text{Level} / 100$).
+          </p>
+        </div>
+
+        <!-- Valve Gain Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>INLET VALVE GAIN (Cv)</span>
+            <span class="val-display" id="disp-gain">0.020</span>
+          </div>
+          <input type="range" id="input-gain" min="0.005" max="0.05" step="0.005" value="0.020">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Effective hydraulic valve flow gain per percent opening.
+          </p>
+        </div>
+
+        <!-- Initial Level Slider -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <div class="form-label">
+            <span>INITIAL TANK LEVEL (h0)</span>
+            <span class="val-display" id="disp-h0">20%</span>
+          </div>
+          <input type="range" id="input-h0" min="0" max="100" step="1" value="20">
+        </div>
+      </aside>
+
+      <!-- Right Graph Panel -->
+      <section class="panel-box" aria-label="Process Response Chart">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.15rem;">Liquid Level Trajectory</h2>
+          <span class="tag tag-amber" id="steady-state-tag">EQUILIBRIUM: --%</span>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="sim-canvas" width="800" height="380" aria-label="Tank level simulation curve"></canvas>
+        </div>
+
+        <div class="formula-block" style="margin-top: 1.25rem;">
+          <div class="formula-step">
+            <span class="step-num">[MODEL]</span>
+            <span class="step-math">
+              Mass Accumulation: dh/dt = 2 &middot; [ (Inflow &middot; ValveGain) - (OutflowBase &middot; h / 100) ]
+            </span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · TANK SIMULATION</div>
+      <div class="footer-links">
+        <a href="index.html">ALL SIMULATORS</a>
+        <a href="temperature.html">TEMPERATURE</a>
+        <a href="motor.html">DC MOTOR</a>
+        <a href="first-order.html">FIRST ORDER</a>
+        <a href="second-order.html">SECOND ORDER</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/pid-sim.js"></script>
+  <script>
+    const inputInflow = document.getElementById('input-inflow');
+    const inputOutflow = document.getElementById('input-outflow');
+    const inputGain = document.getElementById('input-gain');
+    const inputH0 = document.getElementById('input-h0');
+
+    const dispInflow = document.getElementById('disp-inflow');
+    const dispOutflow = document.getElementById('disp-outflow');
+    const dispGain = document.getElementById('disp-gain');
+    const dispH0 = document.getElementById('disp-h0');
+    const tagEquil = document.getElementById('steady-state-tag');
+    const canvas = document.getElementById('sim-canvas');
+
+    function updateSim() {
+      const inflow = parseFloat(inputInflow.value);
+      const outflowBase = parseFloat(inputOutflow.value);
+      const valveGain = parseFloat(inputGain.value);
+      const initialLevel = parseFloat(inputH0.value);
+
+      dispInflow.textContent = `${inflow.toFixed(0)}%`;
+      dispOutflow.textContent = outflowBase.toFixed(2);
+      dispGain.textContent = valveGain.toFixed(3);
+      dispH0.textContent = `${initialLevel.toFixed(0)}%`;
+
+      const data = simulateTankStandalone(inflow, outflowBase, valveGain, { initialLevel });
+      const finalLevel = data[data.length - 1];
+
+      tagEquil.textContent = `FINAL LEVEL: ${finalLevel.toFixed(1)}%`;
+
+      drawProcessCanvas(canvas, data, {
+        minY: 0,
+        maxY: 100,
+        unit: '%',
+        totalTime: 60,
+        dt: 0.1,
+        color: '#4FA98A',
+        glowColor: 'rgba(79, 169, 138, 0.3)'
+      });
+    }
+
+    [inputInflow, inputOutflow, inputGain, inputH0].forEach(el => el.addEventListener('input', updateSim));
+    window.addEventListener('resize', updateSim);
+    document.addEventListener('DOMContentLoaded', updateSim);
+  </script>
+</body>
+</html>

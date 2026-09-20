@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temperature Control Simulator — ControlForge</title>
+  <meta name="description" content="Simulate thermal closed-loop control with asymmetric heating dynamics, ambient loss dissipation, and PID parameter tuning.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #sim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    @media (max-width: 992px) {
+      .lab-layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="index.html" class="nav-link active">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot active"></span>
+        <span>SIM // THERMAL</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <a href="index.html" style="color:var(--amber);">SIMULATION SUITE</a>
+        <span>/</span>
+        <span>THERMODYNAMICS</span>
+        <span>·</span>
+        <span>ASYMMETRIC HEATING</span>
+      </div>
+      <h1 class="page-title">Temperature Control Process Simulator</h1>
+      <p class="page-desc">
+        Observe thermal inertia and non-linear asymmetric cooling dynamics. 
+        Because an electric element can only inject positive heat ($P \ge 0$) and relies purely on passive ambient dissipation to cool down, 
+        recovery from overshoot is inherently slower than symmetric processes.
+      </p>
+    </header>
+
+    <div class="lab-layout">
+
+      <!-- Left Controls Panel -->
+      <aside class="panel-box" aria-label="Thermal Loop Parameters">
+        <h2 style="font-size: 1.15rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line-soft); padding-bottom: 0.5rem;">
+          Controller &amp; Chamber Parameters
+        </h2>
+
+        <!-- Setpoint Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>TARGET TEMPERATURE (SP)</span>
+            <span class="val-display" id="disp-sp">80°C</span>
+          </div>
+          <input type="range" id="input-sp" min="30" max="150" step="1" value="80">
+        </div>
+
+        <!-- Ambient Temperature Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>AMBIENT TEMPERATURE (Tamb)</span>
+            <span class="val-display" id="disp-amb">25°C</span>
+          </div>
+          <input type="range" id="input-amb" min="0" max="45" step="1" value="25">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Surrounding room temperature for passive convective heat loss.
+          </p>
+        </div>
+
+        <!-- Kp Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>HEATER PROPORTIONAL GAIN (Kp)</span>
+            <span class="val-display" id="disp-kp">4.00</span>
+          </div>
+          <input type="range" id="input-kp" min="0.5" max="15" step="0.5" value="4.0">
+        </div>
+
+        <!-- Ki Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>HEATER INTEGRAL GAIN (Ki)</span>
+            <span class="val-display" id="disp-ki">0.20</span>
+          </div>
+          <input type="range" id="input-ki" min="0.0" max="1.5" step="0.02" value="0.2">
+        </div>
+
+        <!-- Kd Slider -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <div class="form-label">
+            <span>HEATER DERIVATIVE GAIN (Kd)</span>
+            <span class="val-display" id="disp-kd">1.50</span>
+          </div>
+          <input type="range" id="input-kd" min="0.0" max="5.0" step="0.1" value="1.5">
+        </div>
+      </aside>
+
+      <!-- Right Graph Panel -->
+      <section class="panel-box" aria-label="Thermal Response Chart">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
+          <h2 style="font-size: 1.15rem;">Chamber Temperature Step Response</h2>
+          <span class="tag tag-amber" id="max-temp-tag">PEAK TEMP: --°C</span>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="sim-canvas" width="800" height="380" aria-label="Temperature response curve"></canvas>
+        </div>
+
+        <!-- Crucial Pedagogical Note on Asymmetric Cooling -->
+        <div class="alert-box alert-amber" style="margin-top: 1.25rem;">
+          <div>
+            <strong>PHYSICAL PROCESS ASYMMETRY:</strong> 
+            The heating element cannot refrigerate or actively cool the process ($P_{heater} \ge 0$). 
+            If excessive $K_p$ or $K_i$ overshoots the setpoint, the heater immediately shuts off ($0\%$), 
+            and the chamber cools strictly through Newton's law of cooling: $\dot{Q}_{loss} = (T - T_{amb}) \cdot h_{loss}$. 
+            Notice how the downward slope after an overshoot peak is significantly slower and flatter than the rapid upward heating ramp!
+          </div>
+        </div>
+
+        <div class="formula-block" style="margin-top: 0.75rem;">
+          <div class="formula-step">
+            <span class="step-num">[THERMAL]</span>
+            <span class="step-math">
+              dT/dt = [ (HeaterPower &middot; 0.3) - ((T - T_amb) &middot; LossCoeff) ] / ThermalMass
+            </span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · THERMAL SIMULATION</div>
+      <div class="footer-links">
+        <a href="index.html">ALL SIMULATORS</a>
+        <a href="tank-level.html">TANK LEVEL</a>
+        <a href="motor.html">DC MOTOR</a>
+        <a href="first-order.html">FIRST ORDER</a>
+        <a href="second-order.html">SECOND ORDER</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/pid-sim.js"></script>
+  <script>
+    const inputSp = document.getElementById('input-sp');
+    const inputAmb = document.getElementById('input-amb');
+    const inputKp = document.getElementById('input-kp');
+    const inputKi = document.getElementById('input-ki');
+    const inputKd = document.getElementById('input-kd');
+
+    const dispSp = document.getElementById('disp-sp');
+    const dispAmb = document.getElementById('disp-amb');
+    const dispKp = document.getElementById('disp-kp');
+    const dispKi = document.getElementById('disp-ki');
+    const dispKd = document.getElementById('disp-kd');
+    const tagPeak = document.getElementById('max-temp-tag');
+    const canvas = document.getElementById('sim-canvas');
+
+    function updateSim() {
+      const sp = parseFloat(inputSp.value);
+      const amb = parseFloat(inputAmb.value);
+      const Kp = parseFloat(inputKp.value);
+      const Ki = parseFloat(inputKi.value);
+      const Kd = parseFloat(inputKd.value);
+
+      dispSp.textContent = `${sp.toFixed(0)}°C`;
+      dispAmb.textContent = `${amb.toFixed(0)}°C`;
+      dispKp.textContent = Kp.toFixed(2);
+      dispKi.textContent = Ki.toFixed(2);
+      dispKd.textContent = Kd.toFixed(2);
+
+      const data = simulateTemperature(Kp, Ki, Kd, sp, amb);
+      const maxVal = Math.max(...data);
+      tagPeak.textContent = `PEAK TEMP: ${maxVal.toFixed(1)}°C`;
+
+      drawProcessCanvas(canvas, data, {
+        minY: Math.floor(amb - 5),
+        maxY: Math.ceil(Math.max(sp * 1.2, maxVal + 5)),
+        setpoint: sp,
+        unit: '°C',
+        totalTime: 80,
+        dt: 0.1,
+        color: '#FFB000',
+        glowColor: 'rgba(255, 176, 0, 0.25)'
+      });
+    }
+
+    [inputSp, inputAmb, inputKp, inputKi, inputKd].forEach(el => el.addEventListener('input', updateSim));
+    window.addEventListener('resize', updateSim);
+    document.addEventListener('DOMContentLoaded', updateSim);
+  </script>
+</body>
+</html>

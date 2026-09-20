@@ -164,6 +164,16 @@
         Tune proportional ($K_p$), integral ($K_i$), and derivative ($K_d$) gains in real-time. 
         Observe step response dynamics, rise time, overshoot penalties, and settling time over a 60-second horizon.
       </p>
+
+      <!-- Simulator Suite Switcher Bar -->
+      <nav style="display:flex; flex-wrap:wrap; gap:8px; margin-top:1.25rem;" aria-label="Simulation Suite Directory">
+        <a href="index.html" class="btn btn-sm btn-primary">★ CLOSED-LOOP PID</a>
+        <a href="tank-level.html" class="btn btn-sm">TANK LEVEL (OPEN)</a>
+        <a href="temperature.html" class="btn btn-sm">TEMPERATURE</a>
+        <a href="motor.html" class="btn btn-sm">DC MOTOR</a>
+        <a href="first-order.html" class="btn btn-sm">FIRST ORDER</a>
+        <a href="second-order.html" class="btn btn-sm">SECOND ORDER</a>
+      </nav>
     </header>
 
     <div class="lab-layout">
@@ -316,6 +326,110 @@
       </section>
 
     </div>
+
+    <!-- Complete Simulation Suite Directory Grid -->
+    <section style="margin-top: 3rem; border-top: 1px solid var(--line); padding-top: 2rem;">
+      <div style="margin-bottom: 1.5rem;">
+        <div class="tag tag-amber" style="margin-bottom: 6px;">SUITE CATALOG</div>
+        <h2 style="font-size: 1.4rem;">Complete Process Simulation Suite</h2>
+        <p style="color: var(--text-dim); font-size: 0.92rem;">
+          Specialized dynamic simulators modeling thermal inertia, electromechanical drives, 
+          and linear time-invariant system responses.
+        </p>
+      </div>
+
+      <div class="hairline-grid">
+        <!-- Card 1: Tank Level (Open) -->
+        <article class="hairline-card">
+          <header class="card-header">
+            <div>
+              <div class="tag" style="margin-bottom: 6px;">FLUID MECHANICS</div>
+              <h3 class="card-title" style="font-size: 1.15rem;">Standalone Tank Level</h3>
+            </div>
+            <span class="tag">OPEN LOOP</span>
+          </header>
+          <p class="card-body">
+            Manual valve throttling and gravity drainage equilibrium modeling mass balance without controller feedback.
+          </p>
+          <footer class="card-footer">
+            <a href="tank-level.html" class="btn btn-sm btn-primary">LAUNCH SIMULATOR ⟶</a>
+            <span style="color:var(--text-faint)">SIM-01</span>
+          </footer>
+        </article>
+
+        <!-- Card 2: Temperature Control -->
+        <article class="hairline-card">
+          <header class="card-header">
+            <div>
+              <div class="tag" style="margin-bottom: 6px;">THERMODYNAMICS</div>
+              <h3 class="card-title" style="font-size: 1.15rem;">Temperature Control</h3>
+            </div>
+            <span class="tag tag-amber">ASYMMETRIC</span>
+          </header>
+          <p class="card-body">
+            Heater power regulation with thermal mass and ambient loss. Note: heating can only add heat, making overshoot recovery slower.
+          </p>
+          <footer class="card-footer">
+            <a href="temperature.html" class="btn btn-sm btn-primary">LAUNCH SIMULATOR ⟶</a>
+            <span style="color:var(--text-faint)">SIM-02</span>
+          </footer>
+        </article>
+
+        <!-- Card 3: DC Motor Speed -->
+        <article class="hairline-card">
+          <header class="card-header">
+            <div>
+              <div class="tag" style="margin-bottom: 6px;">ELECTROMECHANICAL</div>
+              <h3 class="card-title" style="font-size: 1.15rem;">DC Motor Velocity</h3>
+            </div>
+            <span class="tag">PI CONTROL</span>
+          </header>
+          <p class="card-body">
+            Speed regulation counteracting rotational inertia and viscous drag damping with torque calculation.
+          </p>
+          <footer class="card-footer">
+            <a href="motor.html" class="btn btn-sm btn-primary">LAUNCH SIMULATOR ⟶</a>
+            <span style="color:var(--text-faint)">SIM-03</span>
+          </footer>
+        </article>
+
+        <!-- Card 4: First-Order Process -->
+        <article class="hairline-card">
+          <header class="card-header">
+            <div>
+              <div class="tag" style="margin-bottom: 6px;">LTI DYNAMICS</div>
+              <h3 class="card-title" style="font-size: 1.15rem;">First-Order Lag</h3>
+            </div>
+            <span class="tag">STEP RESPONSE</span>
+          </header>
+          <p class="card-body">
+            Generic first-order transfer function step response with process gain K and time constant &tau; inspection.
+          </p>
+          <footer class="card-footer">
+            <a href="first-order.html" class="btn btn-sm btn-primary">LAUNCH SIMULATOR ⟶</a>
+            <span style="color:var(--text-faint)">SIM-04</span>
+          </footer>
+        </article>
+
+        <!-- Card 5: Second-Order Process -->
+        <article class="hairline-card">
+          <header class="card-header">
+            <div>
+              <div class="tag" style="margin-bottom: 6px;">LTI DYNAMICS</div>
+              <h3 class="card-title" style="font-size: 1.15rem;">Second-Order System</h3>
+            </div>
+            <span class="tag tag-verdigris">RESONANCE</span>
+          </header>
+          <p class="card-body">
+            Harmonic response with damping ratio &zeta; and natural frequency &omega;n, dynamically classifying underdamped, critical, and overdamped regimes.
+          </p>
+          <footer class="card-footer">
+            <a href="second-order.html" class="btn btn-sm btn-primary">LAUNCH SIMULATOR ⟶</a>
+            <span style="color:var(--text-faint)">SIM-05</span>
+          </footer>
+        </article>
+      </div>
+    </section>
   </main>
 
   <!-- Site Footer -->

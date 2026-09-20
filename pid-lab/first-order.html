@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>First-Order Process Simulator — ControlForge</title>
+  <meta name="description" content="Simulate first-order lag step response dynamics with process gain (K) and time constant (tau) sliders.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #sim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    @media (max-width: 992px) {
+      .lab-layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="index.html" class="nav-link active">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot active"></span>
+        <span>SIM // FIRST-ORDER</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <a href="index.html" style="color:var(--amber);">SIMULATION SUITE</a>
+        <span>/</span>
+        <span>LINEAR TIME-INVARIANT SYSTEMS</span>
+        <span>·</span>
+        <span>STEP RESPONSE</span>
+      </div>
+      <h1 class="page-title">First-Order Process Simulator</h1>
+      <p class="page-desc">
+        Analyze classic first-order lag transfer functions ($G(s) = \frac{K}{\tau s + 1}$). 
+        Verify that the process variable reaches 63.2% of its final value at exactly one time constant ($t = \tau$) 
+        and settles within 99.3% at $5\tau$.
+      </p>
+    </header>
+
+    <div class="lab-layout">
+
+      <!-- Left Controls Panel -->
+      <aside class="panel-box" aria-label="First Order Transfer Function Parameters">
+        <h2 style="font-size: 1.15rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line-soft); padding-bottom: 0.5rem;">
+          Transfer Function
+        </h2>
+
+        <!-- Process Gain Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>PROCESS STEADY-STATE GAIN (K)</span>
+            <span class="val-display" id="disp-gain">2.50</span>
+          </div>
+          <input type="range" id="input-gain" min="0.2" max="10.0" step="0.1" value="2.5">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Multiplier: $\Delta y_{ss} = K \cdot \Delta u_{step}$.
+          </p>
+        </div>
+
+        <!-- Time Constant Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>TIME CONSTANT (&tau;)</span>
+            <span class="val-display" id="disp-tau">4.0s</span>
+          </div>
+          <input type="range" id="input-tau" min="0.5" max="15.0" step="0.5" value="4.0">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Time required to reach 63.2% of total output change.
+          </p>
+        </div>
+
+        <!-- Input Step Size Slider -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <div class="form-label">
+            <span>INPUT STEP AMPLITUDE (&Delta;u)</span>
+            <span class="val-display" id="disp-step">1.0</span>
+          </div>
+          <input type="range" id="input-step" min="0.5" max="5.0" step="0.5" value="1.0">
+        </div>
+      </aside>
+
+      <!-- Right Graph Panel -->
+      <section class="panel-box" aria-label="Step Response Output">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.15rem;">Output Curve y(t)</h2>
+          <span class="tag tag-amber" id="tau-marker-tag">y(&tau;) = -- (63.2%)</span>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="sim-canvas" width="800" height="380" aria-label="First-order step response curve"></canvas>
+        </div>
+
+        <div class="formula-block" style="margin-top: 1.25rem;">
+          <div class="formula-step">
+            <span class="step-num">[ODE]</span>
+            <span class="step-math">
+              &tau; &middot; dy/dt + y = K &middot; u(t) &ensp;&DoubleLongRightArrow;&ensp; y(t) = K &middot; &Delta;u &middot; (1 - e^{-t/&tau;})
+            </span>
+          </div>
+          <div class="formula-step">
+            <span class="step-num">[BENCH]</span>
+            <span class="step-math">
+              At t = &tau;: 63.2% | At t = 3&tau;: 95.0% | At t = 5&tau;: 99.3% (Settled)
+            </span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · FIRST-ORDER DYNAMICS</div>
+      <div class="footer-links">
+        <a href="index.html">ALL SIMULATORS</a>
+        <a href="tank-level.html">TANK LEVEL</a>
+        <a href="temperature.html">TEMPERATURE</a>
+        <a href="motor.html">DC MOTOR</a>
+        <a href="second-order.html">SECOND ORDER</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/pid-sim.js"></script>
+  <script>
+    const inputGain = document.getElementById('input-gain');
+    const inputTau = document.getElementById('input-tau');
+    const inputStep = document.getElementById('input-step');
+
+    const dispGain = document.getElementById('disp-gain');
+    const dispTau = document.getElementById('disp-tau');
+    const dispStep = document.getElementById('disp-step');
+    const tagTau = document.getElementById('tau-marker-tag');
+    const canvas = document.getElementById('sim-canvas');
+
+    function updateSim() {
+      const gain = parseFloat(inputGain.value);
+      const tau = parseFloat(inputTau.value);
+      const step = parseFloat(inputStep.value);
+
+      dispGain.textContent = gain.toFixed(2);
+      dispTau.textContent = `${tau.toFixed(1)}s`;
+      dispStep.textContent = step.toFixed(1);
+
+      const data = simulateFirstOrder(gain, tau, step);
+      const steadyState = gain * step;
+      const valAtTau = steadyState * 0.632;
+
+      tagTau.textContent = `y(${tau.toFixed(1)}s) = ${valAtTau.toFixed(2)} (63.2%)`;
+
+      drawProcessCanvas(canvas, data, {
+        minY: 0,
+        maxY: Math.ceil(steadyState * 1.25),
+        setpoint: steadyState,
+        totalTime: 30,
+        dt: 0.1,
+        color: '#FFB000',
+        glowColor: 'rgba(255, 176, 0, 0.25)'
+      });
+    }
+
+    [inputGain, inputTau, inputStep].forEach(el => el.addEventListener('input', updateSim));
+    window.addEventListener('resize', updateSim);
+    document.addEventListener('DOMContentLoaded', updateSim);
+  </script>
+</body>
+</html>

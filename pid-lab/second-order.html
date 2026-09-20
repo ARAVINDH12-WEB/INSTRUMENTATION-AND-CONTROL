@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Second-Order Process Simulator — ControlForge</title>
+  <meta name="description" content="Simulate second-order system dynamics with damping ratio (zeta) and natural frequency (omega_n) sliders, with real-time underdamped, critical, and overdamped regime classification.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #sim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    @media (max-width: 992px) {
+      .lab-layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="index.html" class="nav-link active">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot active"></span>
+        <span>SIM // SECOND-ORDER</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <a href="index.html" style="color:var(--amber);">SIMULATION SUITE</a>
+        <span>/</span>
+        <span>RESONANCE &amp; DAMPING</span>
+        <span>·</span>
+        <span>SECOND-ORDER ODE</span>
+      </div>
+      <h1 class="page-title">Second-Order Harmonic System Simulator</h1>
+      <p class="page-desc">
+        Investigate harmonic oscillation, peak overshoot, and decay envelopes. 
+        Observe the transition across the three canonical damping regimes: 
+        underdamped ($\zeta &lt; 1$), critically damped ($\zeta = 1$), and overdamped ($\zeta &gt; 1$).
+      </p>
+    </header>
+
+    <div class="lab-layout">
+
+      <!-- Left Controls Panel -->
+      <aside class="panel-box" aria-label="Second Order Parameters">
+        <h2 style="font-size: 1.15rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line-soft); padding-bottom: 0.5rem;">
+          Damping &amp; Frequency
+        </h2>
+
+        <!-- Damping Ratio Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>DAMPING RATIO (&zeta;)</span>
+            <span class="val-display" id="disp-zeta">0.35</span>
+          </div>
+          <input type="range" id="input-zeta" min="0.05" max="2.5" step="0.05" value="0.35">
+        </div>
+
+        <!-- Regime Status Box -->
+        <div id="regime-banner" class="alert-box alert-amber" style="margin-top: -0.5rem; margin-bottom: 1.25rem;">
+          <strong id="regime-title">UNDERDAMPED</strong>: Oscillatory response with decaying envelope.
+        </div>
+
+        <!-- Natural Frequency Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>NATURAL FREQUENCY (&omega;n)</span>
+            <span class="val-display" id="disp-wn">1.8 rad/s</span>
+          </div>
+          <input type="range" id="input-wn" min="0.5" max="5.0" step="0.1" value="1.8">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Undamped angular resonance speed.
+          </p>
+        </div>
+
+        <!-- Step Amplitude Slider -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <div class="form-label">
+            <span>STEP AMPLITUDE (&Delta;u)</span>
+            <span class="val-display" id="disp-step">1.0</span>
+          </div>
+          <input type="range" id="input-step" min="0.5" max="5.0" step="0.5" value="1.0">
+        </div>
+      </aside>
+
+      <!-- Right Graph Panel -->
+      <section class="panel-box" aria-label="Second Order Step Trajectory">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
+          <h2 style="font-size: 1.15rem;">Harmonic Trajectory y(t)</h2>
+          <span class="tag tag-amber" id="tag-regime">REGIME: UNDERDAMPED</span>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="sim-canvas" width="800" height="380" aria-label="Second-order step response curve"></canvas>
+        </div>
+
+        <div class="formula-block" style="margin-top: 1.25rem;">
+          <div class="formula-step">
+            <span class="step-num">[TRANSFER]</span>
+            <span class="step-math">
+              G(s) = &omega;n&sup2; / (s&sup2; + 2&zeta;&omega;n s + &omega;n&sup2;)
+            </span>
+          </div>
+          <div class="formula-step">
+            <span class="step-num">[CLASSIFICATION]</span>
+            <span class="step-math">
+              &zeta; &lt; 1: Underdamped (Oscillates) &ensp;|&ensp; &zeta; = 1: Critically Damped &ensp;|&ensp; &zeta; &gt; 1: Overdamped (No Oscillation)
+            </span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · SECOND-ORDER DYNAMICS</div>
+      <div class="footer-links">
+        <a href="index.html">ALL SIMULATORS</a>
+        <a href="tank-level.html">TANK LEVEL</a>
+        <a href="temperature.html">TEMPERATURE</a>
+        <a href="motor.html">DC MOTOR</a>
+        <a href="first-order.html">FIRST ORDER</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/pid-sim.js"></script>
+  <script>
+    const inputZeta = document.getElementById('input-zeta');
+    const inputWn = document.getElementById('input-wn');
+    const inputStep = document.getElementById('input-step');
+
+    const dispZeta = document.getElementById('disp-zeta');
+    const dispWn = document.getElementById('disp-wn');
+    const dispStep = document.getElementById('disp-step');
+    const regimeBanner = document.getElementById('regime-banner');
+    const regimeTitle = document.getElementById('regime-title');
+    const tagRegime = document.getElementById('tag-regime');
+    const canvas = document.getElementById('sim-canvas');
+
+    function updateSim() {
+      const zeta = parseFloat(inputZeta.value);
+      const wn = parseFloat(inputWn.value);
+      const step = parseFloat(inputStep.value);
+
+      dispZeta.textContent = zeta.toFixed(2);
+      dispWn.textContent = `${wn.toFixed(1)} rad/s`;
+      dispStep.textContent = step.toFixed(1);
+
+      // Classify regime per skill documentation
+      let color = '#FFB000';
+      if (zeta < 1.0) {
+        regimeBanner.className = 'alert-box alert-amber';
+        regimeTitle.textContent = 'UNDERDAMPED (ζ < 1)';
+        regimeBanner.innerHTML = `<strong>UNDERDAMPED (ζ = ${zeta.toFixed(2)} &lt; 1):</strong> Complex conjugate poles. Produces periodic oscillations decaying with time constant 1/(ζ·ωn).`;
+        tagRegime.className = 'tag tag-amber';
+        tagRegime.textContent = 'REGIME: UNDERDAMPED';
+        color = '#FFB000';
+      } else if (Math.abs(zeta - 1.0) < 0.04) {
+        regimeBanner.className = 'alert-box alert-verdigris';
+        regimeTitle.textContent = 'CRITICALLY DAMPED (ζ = 1)';
+        regimeBanner.innerHTML = `<strong>CRITICALLY DAMPED (ζ = 1.00):</strong> Repeated real poles. Fastest possible approach to steady-state without any overshoot or oscillation!`;
+        tagRegime.className = 'tag tag-verdigris';
+        tagRegime.textContent = 'REGIME: CRITICALLY DAMPED';
+        color = '#4FA98A';
+      } else {
+        regimeBanner.className = 'alert-box';
+        regimeBanner.style.background = 'var(--panel-2)';
+        regimeBanner.style.border = '1px solid var(--line)';
+        regimeBanner.style.color = 'var(--text-dim)';
+        regimeBanner.innerHTML = `<strong>OVERDAMPED (ζ = ${zeta.toFixed(2)} &gt; 1):</strong> Distinct real poles. Sluggish, monotonic rise with zero overshoot.`;
+        tagRegime.className = 'tag';
+        tagRegime.textContent = 'REGIME: OVERDAMPED';
+        color = '#A79C8A';
+      }
+
+      const data = simulateSecondOrder(zeta, wn, step);
+      const maxVal = Math.max(...data);
+
+      drawProcessCanvas(canvas, data, {
+        minY: 0,
+        maxY: Math.max(step * 1.25, maxVal * 1.15),
+        setpoint: step,
+        totalTime: 20,
+        dt: 0.05,
+        color: color,
+        glowColor: color === '#4FA98A' ? 'rgba(79, 169, 138, 0.3)' : 'rgba(255, 176, 0, 0.25)'
+      });
+    }
+
+    [inputZeta, inputWn, inputStep].forEach(el => el.addEventListener('input', updateSim));
+    window.addEventListener('resize', updateSim);
+    document.addEventListener('DOMContentLoaded', updateSim);
+  </script>
+</body>
+</html>

@@ -204,7 +204,233 @@ function drawPIDCanvas(canvas, data, setpoint, metrics) {
   ctx.restore();
 }
 
+/**
+ * First-order process (generic step response)
+ * y(t) with gain K and time constant tau
+ */
+function simulateFirstOrder(gain, timeConstant, stepSize = 1, opts = {}) {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 300;
+  let y = 0; const data = [];
+  for (let i = 0; i < steps; i++) {
+    const dydt = (gain * stepSize - y) / timeConstant;
+    y += dydt * dt;
+    data.push(y);
+  }
+  return data;
+}
+
+/**
+ * Second-order process (damping ratio zeta + natural frequency wn)
+ * zeta < 1: underdamped (oscillates). zeta = 1: critically damped. zeta > 1: overdamped.
+ */
+function simulateSecondOrder(zeta, wn, stepSize = 1, opts = {}) {
+  const dt = opts.dt ?? 0.05, steps = opts.steps ?? 400;
+  let y = 0, v = 0; const data = [];
+  for (let i = 0; i < steps; i++) {
+    const a = wn * wn * (stepSize - y) - 2 * zeta * wn * v;
+    v += a * dt;
+    y += v * dt;
+    data.push(y);
+  }
+  return data;
+}
+
+/**
+ * Temperature control (heater + ambient loss)
+ * Asymmetric cooling: heater can only add heat (heaterPower >= 0).
+ */
+function simulateTemperature(Kp, Ki, Kd, setpoint, ambientTemp = 25, opts = {}) {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
+  const thermalMass = opts.thermalMass ?? 50, lossCoeff = opts.lossCoeff ?? 0.05;
+  let temp = ambientTemp, integral = 0, prevErr = 0; const data = [];
+  for (let i = 0; i < steps; i++) {
+    const err = setpoint - temp;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    let heaterPower = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
+    const heatIn = heaterPower * 0.3;
+    const heatLoss = (temp - ambientTemp) * lossCoeff;
+    temp += (heatIn - heatLoss) * dt / thermalMass;
+    prevErr = err;
+    data.push(temp);
+  }
+  return data;
+}
+
+/**
+ * DC motor speed control (simplified first-order electrical + mechanical)
+ */
+function simulateMotorSpeed(Kp, Ki, targetSpeed, opts = {}) {
+  const dt = opts.dt ?? 0.01, steps = opts.steps ?? 500;
+  const inertia = opts.inertia ?? 0.02, friction = opts.friction ?? 0.1;
+  let speed = 0, integral = 0; const data = [];
+  for (let i = 0; i < steps; i++) {
+    const err = targetSpeed - speed;
+    integral += err * dt;
+    const torque = Kp * err + Ki * integral;
+    const accel = (torque - friction * speed) / inertia;
+    speed += accel * dt;
+    data.push(speed);
+  }
+  return data;
+}
+
+/**
+ * Standalone tank-level process without PID (manual valve/inflow control)
+ * @param {number} inletFlow - 0 to 100%
+ * @param {number} outflowBase - gravity drainage coefficient
+ * @param {number} valveGain - inlet valve multiplier
+ */
+function simulateTankStandalone(inletFlow, outflowBase = 0.6, valveGain = 0.02, opts = {}) {
+  const dt = opts.dt ?? 0.1;
+  const steps = opts.steps ?? 600;
+  let level = opts.initialLevel ?? 20;
+  const data = [];
+
+  for (let i = 0; i < steps; i++) {
+    const inflow = inletFlow * valveGain;
+    const outflow = outflowBase * (level / 100);
+    level += (inflow - outflow) * dt * 2;
+    level = Math.max(0, Math.min(100, level));
+    data.push(level);
+  }
+  return data;
+}
+
+/**
+ * Generic high-DPI canvas curve drawer for general process dynamics
+ */
+function drawProcessCanvas(canvas, data, opts = {}) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+
+  const rect = canvas.getBoundingClientRect();
+  const width = rect.width;
+  const height = rect.height;
+
+  if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+  }
+
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  // Background
+  ctx.fillStyle = '#18150F';
+  ctx.fillRect(0, 0, width, height);
+
+  const padL = opts.padL ?? 56;
+  const padR = opts.padR ?? 24;
+  const padT = opts.padT ?? 24;
+  const padB = opts.padB ?? 36;
+  const plotW = width - padL - padR;
+  const plotH = height - padT - padB;
+
+  const steps = data.length;
+  const minY = opts.minY ?? Math.min(0, ...data);
+  const maxY = opts.maxY ?? Math.max(1, ...data);
+  const rangeY = (maxY - minY) || 1;
+
+  const toX = (idx) => padL + (idx / Math.max(1, steps - 1)) * plotW;
+  const toY = (val) => padT + plotH - ((val - minY) / rangeY) * plotH;
+
+  // Grid
+  ctx.strokeStyle = '#221E17';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#6B6255';
+  ctx.font = '10px "IBM Plex Mono", monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+
+  // 5 horizontal ticks
+  for (let i = 0; i <= 4; i++) {
+    const frac = i / 4;
+    const val = minY + frac * rangeY;
+    const y = toY(val);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+    const label = val.toFixed(val >= 10 ? 0 : 1) + (opts.unit ? ` ${opts.unit}` : '');
+    ctx.fillText(label, padL - 8, y);
+  }
+
+  // Time ticks
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const totalTime = opts.totalTime ?? ((steps - 1) * (opts.dt ?? 0.1));
+  for (let i = 0; i <= 4; i++) {
+    const frac = i / 4;
+    const x = padL + frac * plotW;
+    const sec = (frac * totalTime).toFixed(totalTime > 10 ? 0 : 1);
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillText(`${sec}s`, x, padT + plotH + 8);
+  }
+
+  // Optional Setpoint / Target Line
+  if (opts.setpoint !== undefined && opts.setpoint !== null) {
+    const ySp = toY(opts.setpoint);
+    ctx.strokeStyle = '#FFB000';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(padL, ySp);
+    ctx.lineTo(padL + plotW, ySp);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#FFB000';
+    ctx.font = '11px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(`TARGET: ${opts.setpoint}${opts.unit ?? ''}`, padL + plotW, ySp - 12);
+  }
+
+  // Curve
+  const color = opts.color || '#FFB000';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  data.forEach((val, idx) => {
+    const x = toX(idx);
+    const y = toY(val);
+    if (idx === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Glow
+  ctx.strokeStyle = opts.glowColor || 'rgba(255, 176, 0, 0.25)';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  // Final Point
+  if (steps > 0) {
+    const lastVal = data[steps - 1];
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(toX(steps - 1), toY(lastVal), 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
 // Export for Node/testing if applicable
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { simulateTankPID, computeMetrics, drawPIDCanvas };
+  module.exports = {
+    simulateTankPID,
+    computeMetrics,
+    drawPIDCanvas,
+    simulateFirstOrder,
+    simulateSecondOrder,
+    simulateTemperature,
+    simulateMotorSpeed,
+    simulateTankStandalone,
+    drawProcessCanvas
+  };
 }

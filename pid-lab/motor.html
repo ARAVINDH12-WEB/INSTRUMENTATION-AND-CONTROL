@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DC Motor Speed Control Simulator — ControlForge</title>
+  <meta name="description" content="Simulate DC motor armature torque and velocity response using proportional-integral (PI) velocity regulation.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #sim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    @media (max-width: 992px) {
+      .lab-layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="index.html" class="nav-link active">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot active"></span>
+        <span>SIM // DC-MOTOR</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <a href="index.html" style="color:var(--amber);">SIMULATION SUITE</a>
+        <span>/</span>
+        <span>ELECTROMECHANICAL DRIVES</span>
+        <span>·</span>
+        <span>VELOCITY CONTROL</span>
+      </div>
+      <h1 class="page-title">DC Motor Velocity Control Simulator</h1>
+      <p class="page-desc">
+        Explore closed-loop speed regulation for a permanent magnet DC motor. 
+        Tune PI parameters to counteract rotor inertia ($J = 0.02\text{ kg}\cdot\text{m}^2$) 
+        and viscous friction damping ($B = 0.1\text{ N}\cdot\text{s}$).
+      </p>
+    </header>
+
+    <div class="lab-layout">
+
+      <!-- Left Controls Panel -->
+      <aside class="panel-box" aria-label="PI Motor Parameters">
+        <h2 style="font-size: 1.15rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line-soft); padding-bottom: 0.5rem;">
+          Drive Parameters
+        </h2>
+
+        <!-- Target Speed Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>TARGET SPEED (rpm / rad/s)</span>
+            <span class="val-display" id="disp-speed">150 rad/s</span>
+          </div>
+          <input type="range" id="input-speed" min="20" max="300" step="5" value="150">
+        </div>
+
+        <!-- Kp Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>PROPORTIONAL TORQUE GAIN (Kp)</span>
+            <span class="val-display" id="disp-kp">1.20</span>
+          </div>
+          <input type="range" id="input-kp" min="0.1" max="5.0" step="0.05" value="1.20">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Direct torque generation per speed error radian.
+          </p>
+        </div>
+
+        <!-- Ki Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>INTEGRAL TORQUE GAIN (Ki)</span>
+            <span class="val-display" id="disp-ki">4.00</span>
+          </div>
+          <input type="range" id="input-ki" min="0.0" max="15.0" step="0.2" value="4.00">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Eliminates viscous drag steady-state offset.
+          </p>
+        </div>
+
+        <!-- Mechanical Specs Display -->
+        <div class="recessed-box" style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-dim);">
+          <div style="color:var(--amber); margin-bottom: 4px;">MOTOR CONSTANTS</div>
+          <div>Inertia (J): 0.02 kg&middot;m&sup2;</div>
+          <div>Viscous Damping (B): 0.10 N&middot;m&middot;s</div>
+          <div>Simulation Step (dt): 0.01 s</div>
+        </div>
+      </aside>
+
+      <!-- Right Graph Panel -->
+      <section class="panel-box" aria-label="Motor Velocity Response">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem;">
+          <h2 style="font-size: 1.15rem;">Angular Velocity Profile (&omega;(t))</h2>
+          <span class="tag tag-amber" id="settled-speed-tag">FINAL SPEED: -- rad/s</span>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="sim-canvas" width="800" height="380" aria-label="DC motor velocity curve"></canvas>
+        </div>
+
+        <div class="formula-block" style="margin-top: 1.25rem;">
+          <div class="formula-step">
+            <span class="step-num">[TORQUE]</span>
+            <span class="step-math">T_elect(t) = Kp &middot; (Speed_target - &omega;) + Ki &middot; &int; e &middot; dt</span>
+          </div>
+          <div class="formula-step">
+            <span class="step-num">[NEWTON]</span>
+            <span class="step-math">d&omega;/dt = (T_elect - B &middot; &omega;) / J</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · MOTOR SIMULATION</div>
+      <div class="footer-links">
+        <a href="index.html">ALL SIMULATORS</a>
+        <a href="tank-level.html">TANK LEVEL</a>
+        <a href="temperature.html">TEMPERATURE</a>
+        <a href="first-order.html">FIRST ORDER</a>
+        <a href="second-order.html">SECOND ORDER</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/pid-sim.js"></script>
+  <script>
+    const inputSpeed = document.getElementById('input-speed');
+    const inputKp = document.getElementById('input-kp');
+    const inputKi = document.getElementById('input-ki');
+
+    const dispSpeed = document.getElementById('disp-speed');
+    const dispKp = document.getElementById('disp-kp');
+    const dispKi = document.getElementById('disp-ki');
+    const tagSpeed = document.getElementById('settled-speed-tag');
+    const canvas = document.getElementById('sim-canvas');
+
+    function updateSim() {
+      const targetSpeed = parseFloat(inputSpeed.value);
+      const Kp = parseFloat(inputKp.value);
+      const Ki = parseFloat(inputKi.value);
+
+      dispSpeed.textContent = `${targetSpeed.toFixed(0)} rad/s`;
+      dispKp.textContent = Kp.toFixed(2);
+      dispKi.textContent = Ki.toFixed(2);
+
+      const data = simulateMotorSpeed(Kp, Ki, targetSpeed);
+      const finalVal = data[data.length - 1];
+      tagSpeed.textContent = `FINAL SPEED: ${finalVal.toFixed(1)} rad/s`;
+
+      drawProcessCanvas(canvas, data, {
+        minY: 0,
+        maxY: Math.ceil(Math.max(targetSpeed * 1.3, Math.max(...data) + 10)),
+        setpoint: targetSpeed,
+        unit: 'rad/s',
+        totalTime: 5.0,
+        dt: 0.01,
+        color: '#4FA98A',
+        glowColor: 'rgba(79, 169, 138, 0.3)'
+      });
+    }
+
+    [inputSpeed, inputKp, inputKi].forEach(el => el.addEventListener('input', updateSim));
+    window.addEventListener('resize', updateSim);
+    document.addEventListener('DOMContentLoaded', updateSim);
+  </script>
+</body>
+</html>
