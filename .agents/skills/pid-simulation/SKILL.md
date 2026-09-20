@@ -135,3 +135,111 @@ function rangeAndSpan(LRV, URV) {
 ## When porting this to a Python/FastAPI backend
 
 Keep the same clamp order and constants (`dt`, `valveGain`, `outflowBase`) so results match the client-side JS version exactly — the site's credibility depends on the Home animation, PID Lab, and any backend-simulated case study all agreeing numerically for the same inputs.
+
+## Additional process simulations (Phase 2)
+
+### First-order process (generic step response)
+```javascript
+function simulateFirstOrder(gain, timeConstant, stepSize = 1, opts = {}) {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 300;
+  let y = 0; const data = [];
+  for (let i = 0; i < steps; i++) {
+    const dydt = (gain * stepSize - y) / timeConstant;
+    y += dydt * dt;
+    data.push(y);
+  }
+  return data;
+}
+```
+
+### Second-order process (damping ratio + natural frequency)
+```javascript
+function simulateSecondOrder(zeta, wn, stepSize = 1, opts = {}) {
+  const dt = opts.dt ?? 0.05, steps = opts.steps ?? 400;
+  let y = 0, v = 0; const data = [];
+  for (let i = 0; i < steps; i++) {
+    const a = wn * wn * (stepSize - y) - 2 * zeta * wn * v;
+    v += a * dt;
+    y += v * dt;
+    data.push(y);
+  }
+  return data;
+}
+// zeta < 1: underdamped (oscillates). zeta = 1: critically damped. zeta > 1: overdamped.
+```
+
+### Temperature control (heater + ambient loss)
+```javascript
+function simulateTemperature(Kp, Ki, Kd, setpoint, ambientTemp = 25, opts = {}) {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
+  const thermalMass = opts.thermalMass ?? 50, lossCoeff = opts.lossCoeff ?? 0.05;
+  let temp = ambientTemp, integral = 0, prevErr = 0; const data = [];
+  for (let i = 0; i < steps; i++) {
+    const err = setpoint - temp;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    let heaterPower = Math.max(0, Math.min(100, Kp*err + Ki*integral + Kd*deriv));
+    const heatIn = heaterPower * 0.3;
+    const heatLoss = (temp - ambientTemp) * lossCoeff;
+    temp += (heatIn - heatLoss) * dt / thermalMass;
+    prevErr = err; data.push(temp);
+  }
+  return data;
+}
+// Heater cannot cool — only add heat (heaterPower >= 0). This asymmetry is intentional
+// and must be preserved: it makes overshoot recovery slower than in the tank model,
+// which is physically correct and a good teaching point on the page.
+```
+
+### DC motor speed control (simplified first-order electrical + mechanical)
+```javascript
+function simulateMotorSpeed(Kp, Ki, targetSpeed, opts = {}) {
+  const dt = opts.dt ?? 0.01, steps = opts.steps ?? 500;
+  const inertia = opts.inertia ?? 0.02, friction = opts.friction ?? 0.1;
+  let speed = 0, integral = 0; const data = [];
+  for (let i = 0; i < steps; i++) {
+    const err = targetSpeed - speed;
+    integral += err * dt;
+    const torque = Kp*err + Ki*integral;
+    const accel = (torque - friction*speed) / inertia;
+    speed += accel * dt;
+    data.push(speed);
+  }
+  return data;
+}
+```
+
+## Additional calculator formulas (Phase 2)
+
+```javascript
+// Thermocouple (Type K approx., linear segment 0-500°C, µV/°C ~ 41)
+function thermocoupleTypeK_mV(tempC) { return (tempC * 0.041).toFixed(3); } // simplified linear approx — label as "approximate" in UI, real curves are non-linear
+
+// RTD (Pt100, alpha = 0.00385 /°C)
+function rtdResistance(tempC, R0 = 100, alpha = 0.00385) { return R0 * (1 + alpha * tempC); }
+
+// Orifice plate flow (simplified, incompressible)
+function orificeFlow(Cd, area, dP, density) {
+  return Cd * area * Math.sqrt((2 * dP) / density);
+}
+
+// Ziegler-Nichols PID tuning from ultimate gain/period
+function zieglerNichols(Ku, Tu) {
+  return { Kp: 0.6*Ku, Ki: 1.2*Ku/Tu, Kd: 0.075*Ku*Tu };
+}
+```
+
+## Dashboard disturbance model
+
+```javascript
+function applyDisturbance(level, type) {
+  switch(type) {
+    case 'noise': return level + (Math.random()-0.5)*3;
+    case 'outlet-spike': return level - 15; // sudden demand increase
+    case 'valve-stiction': return level; // valve output frozen — handle by NOT updating valve output for N steps upstream, not here
+    case 'transmitter-fail': return null; // signals UI to show "BAD" quality flag, freeze last good reading
+    case 'comms-loss': return undefined; // signals UI to show stale/greyed-out readout, no new data
+    default: return level;
+  }
+}
+```
