@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PID Simulation Lab — ControlForge</title>
+  <meta name="description" content="Interactive discrete PID controller and tank-level process simulator. Adjust Kp, Ki, Kd, and setpoint in real time with high-DPI canvas response curve.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    .controls-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+
+    .preset-group {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .chart-container {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    #pid-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      background-color: var(--line);
+      gap: 1px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .metric-card {
+      background: var(--panel-2);
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric-label {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-faint);
+      letter-spacing: 0.05em;
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .metric-val.crimson {
+      color: var(--crimson);
+      text-shadow: 0 0 8px rgba(214, 69, 80, 0.4);
+    }
+
+    .metric-val.verdigris {
+      color: var(--verdigris);
+      text-shadow: 0 0 8px rgba(79, 169, 138, 0.4);
+    }
+
+    .metric-val.amber {
+      color: var(--amber);
+      text-shadow: 0 0 8px var(--amber-glow);
+    }
+
+    .metric-status-note {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 992px) {
+      .lab-layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="index.html" class="nav-link active">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot active"></span>
+        <span>LAB // ACTIVE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <span>SIMULATOR // PROCESS CONTROL</span>
+        <span>·</span>
+        <span>DISCRETE TANK-LEVEL PROCESS</span>
+      </div>
+      <h1 class="page-title">PID Controller Simulation Testbench</h1>
+      <p class="page-desc">
+        Tune proportional ($K_p$), integral ($K_i$), and derivative ($K_d$) gains in real-time. 
+        Observe step response dynamics, rise time, overshoot penalties, and settling time over a 60-second horizon.
+      </p>
+    </header>
+
+    <div class="lab-layout">
+
+      <!-- Left Sidebar: Tuning Controls & Presets -->
+      <aside class="controls-panel" aria-label="Controller Parameter Controls">
+        
+        <!-- Tuning Presets -->
+        <div class="preset-group">
+          <label class="form-label" style="margin-bottom: 4px;">
+            <span>TUNING PRESETS</span>
+            <span class="tag">SELECT</span>
+          </label>
+          <div class="preset-buttons">
+            <button type="button" class="btn btn-sm" id="preset-sluggish" onclick="applyPreset('sluggish')">SLUGGISH</button>
+            <button type="button" class="btn btn-sm" id="preset-aggressive" onclick="applyPreset('aggressive')">AGGRESSIVE</button>
+            <button type="button" class="btn btn-sm btn-primary" id="preset-welltuned" onclick="applyPreset('welltuned')">WELL-TUNED</button>
+          </div>
+        </div>
+
+        <!-- Slider Kp -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>PROPORTIONAL GAIN (Kp)</span>
+            <span class="val-display" id="val-kp">2.10</span>
+          </div>
+          <input type="range" id="input-kp" min="0" max="10" step="0.1" value="2.1">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Generates corrective effort directly proportional to error $e(t)$.
+          </p>
+        </div>
+
+        <!-- Slider Ki -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>INTEGRAL GAIN (Ki)</span>
+            <span class="val-display" id="val-ki">0.35</span>
+          </div>
+          <input type="range" id="input-ki" min="0" max="3" step="0.05" value="0.35">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Eliminates steady-state offset by integrating accumulated error.
+          </p>
+        </div>
+
+        <!-- Slider Kd -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>DERIVATIVE GAIN (Kd)</span>
+            <span class="val-display" id="val-kd">0.10</span>
+          </div>
+          <input type="range" id="input-kd" min="0" max="1" step="0.01" value="0.1">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Damps rate of change $de/dt$ to restrain rapid overshoot.
+          </p>
+        </div>
+
+        <!-- Slider Setpoint -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>TARGET SETPOINT (SP)</span>
+            <span class="val-display" id="val-sp">50%</span>
+          </div>
+          <input type="range" id="input-sp" min="10" max="90" step="1" value="50">
+          <p style="font-size: 0.72rem; color: var(--text-faint); margin: 0; font-family: var(--font-mono);">
+            Target fluid level in the tank (0–100%).
+          </p>
+        </div>
+
+        <!-- Sensor Noise Toggle -->
+        <div class="form-group" style="margin-bottom: 0; padding-top: 8px; border-top: 1px solid var(--line-soft);">
+          <div class="form-label">
+            <span>SIMULATED SENSOR NOISE</span>
+            <span class="val-display" id="val-noise">OFF</span>
+          </div>
+          <input type="range" id="input-noise" min="0" max="1.5" step="0.25" value="0">
+        </div>
+
+      </aside>
+
+      <!-- Right Main: Live Canvas Plot & Real-Time Metrics -->
+      <section class="chart-container" aria-label="Simulation Graph & Readouts">
+        
+        <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h2 style="font-size: 1.15rem; margin-bottom: 2px;">Process Response Dynamics</h2>
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint);">
+              SOLVER: EULER DISCRETE (dt = 0.1s, 600 STEPS = 60s)
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; font-family: var(--font-mono); font-size: 0.72rem;">
+            <span style="color: var(--amber);">--- SETPOINT</span>
+            <span style="color: var(--verdigris);">— PROCESS VARIABLE (PV)</span>
+          </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-wrapper">
+          <canvas id="pid-canvas" width="800" height="380" aria-label="Live chart of tank level step response curve"></canvas>
+        </div>
+
+        <!-- Real-Time Computed Metrics Grid -->
+        <div class="metrics-grid">
+          
+          <!-- Overshoot Metric -->
+          <div class="metric-card" id="card-overshoot">
+            <span class="metric-label">PERCENT OVERSHOOT (OS%)</span>
+            <span class="metric-val" id="metric-overshoot">0.0%</span>
+            <span class="metric-status-note" id="metric-overshoot-tag">CHECKING...</span>
+          </div>
+
+          <!-- Rise Time Metric -->
+          <div class="metric-card">
+            <span class="metric-label">RISE TIME (tr to 90% SP)</span>
+            <span class="metric-val" id="metric-risetime">0.0s</span>
+            <span class="metric-status-note" style="color:var(--text-faint);">TARGET SPEED</span>
+          </div>
+
+          <!-- Settling Time Metric -->
+          <div class="metric-card">
+            <span class="metric-label">SETTLING TIME (ts to &plusmn;5%)</span>
+            <span class="metric-val" id="metric-settletime">0.0s</span>
+            <span class="metric-status-note" style="color:var(--text-faint);">BAND: &plusmn;5% SP</span>
+          </div>
+
+          <!-- Final Level -->
+          <div class="metric-card">
+            <span class="metric-label">FINAL LEVEL (t = 60s)</span>
+            <span class="metric-val" id="metric-finallevel">50.0%</span>
+            <span class="metric-status-note" style="color:var(--text-faint);">STEADY STATE</span>
+          </div>
+
+        </div>
+
+        <!-- Mathematical Algorithm Reference -->
+        <div class="formula-block" style="margin-top: 0;">
+          <div class="formula-step">
+            <span class="step-num">[1]</span>
+            <span class="step-math">Error: e[k] = Setpoint - Level[k]</span>
+          </div>
+          <div class="formula-step">
+            <span class="step-num">[2]</span>
+            <span class="step-math">PID Controller: u[k] = clamp(Kp &middot; e + Ki &middot; &int;e&middot;dt + Kd &middot; de/dt, 0, 100)%</span>
+          </div>
+          <div class="formula-step">
+            <span class="step-num">[3]</span>
+            <span class="step-math">Mass Balance: Level[k+1] = clamp(Level[k] + (Inflow - Outflow) &middot; dt &middot; 2, 0, 100)%</span>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · PID LAB RUNTIME</div>
+      <div class="footer-links">
+        <a href="../index.html">HOME</a>
+        <a href="../projects/index.html">PROJECTS</a>
+        <a href="index.html">PID LAB</a>
+        <a href="../calculators/index.html">CALCULATORS</a>
+        <a href="../notes/index.html">NOTES</a>
+      </div>
+      <div>SIMULATION KERNEL // PID-SIMULATION SKILL SPEC</div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/pid-sim.js"></script>
+  <script>
+    // Elements
+    const inputKp = document.getElementById('input-kp');
+    const inputKi = document.getElementById('input-ki');
+    const inputKd = document.getElementById('input-kd');
+    const inputSp = document.getElementById('input-sp');
+    const inputNoise = document.getElementById('input-noise');
+
+    const dispKp = document.getElementById('val-kp');
+    const dispKi = document.getElementById('val-ki');
+    const dispKd = document.getElementById('val-kd');
+    const dispSp = document.getElementById('val-sp');
+    const dispNoise = document.getElementById('val-noise');
+
+    const metricOvershoot = document.getElementById('metric-overshoot');
+    const metricOvershootTag = document.getElementById('metric-overshoot-tag');
+    const metricRiseTime = document.getElementById('metric-risetime');
+    const metricSettleTime = document.getElementById('metric-settletime');
+    const metricFinalLevel = document.getElementById('metric-finallevel');
+    const canvas = document.getElementById('pid-canvas');
+
+    const presets = {
+      sluggish:   { Kp: 1.0, Ki: 0.1,  Kd: 0.0, sp: 50 },
+      aggressive: { Kp: 6.0, Ki: 1.2,  Kd: 0.0, sp: 50 },
+      welltuned:  { Kp: 2.1, Ki: 0.35, Kd: 0.1, sp: 50 }
+    };
+
+    function applyPreset(type) {
+      const p = presets[type];
+      if (!p) return;
+      inputKp.value = p.Kp;
+      inputKi.value = p.Ki;
+      inputKd.value = p.Kd;
+      inputSp.value = p.sp;
+      
+      // Update active button state
+      ['sluggish', 'aggressive', 'welltuned'].forEach(id => {
+        const btn = document.getElementById(`preset-${id}`);
+        if (id === type) btn.classList.add('btn-primary');
+        else btn.classList.remove('btn-primary');
+      });
+
+      runSimulation();
+    }
+
+    function runSimulation() {
+      const Kp = parseFloat(inputKp.value);
+      const Ki = parseFloat(inputKi.value);
+      const Kd = parseFloat(inputKd.value);
+      const setpoint = parseFloat(inputSp.value);
+      const noise = parseFloat(inputNoise.value);
+
+      dispKp.textContent = Kp.toFixed(2);
+      dispKi.textContent = Ki.toFixed(2);
+      dispKd.textContent = Kd.toFixed(2);
+      dispSp.textContent = `${setpoint.toFixed(0)}%`;
+      dispNoise.textContent = noise === 0 ? 'OFF' : `&plusmn;${noise.toFixed(2)}%`;
+
+      // Run exact simulation math from pid-simulation skill
+      const data = simulateTankPID(Kp, Ki, Kd, setpoint, { noiseAmplitude: noise });
+      const metrics = computeMetrics(data, setpoint);
+
+      // Render chart
+      drawPIDCanvas(canvas, data, setpoint, metrics);
+
+      // Update metrics readouts with design token thresholds:
+      // overshootPct > 15 -> crimson (poor)
+      // overshootPct < 3  -> verdigris (good)
+      // in-between        -> neutral amber
+      metricOvershoot.textContent = `${metrics.overshootPct.toFixed(1)}%`;
+      metricOvershoot.className = 'metric-val';
+
+      if (metrics.overshootPct > 15) {
+        metricOvershoot.classList.add('crimson');
+        metricOvershootTag.innerHTML = '<span class="tag tag-crimson">POOR TUNING / OVERSHOOT</span>';
+      } else if (metrics.overshootPct < 3) {
+        metricOvershoot.classList.add('verdigris');
+        metricOvershootTag.innerHTML = '<span class="tag tag-verdigris">OPTIMAL TUNING</span>';
+      } else {
+        metricOvershoot.classList.add('amber');
+        metricOvershootTag.innerHTML = '<span class="tag tag-amber">ACCEPTABLE DAMPING</span>';
+      }
+
+      metricRiseTime.textContent = metrics.riseTimeSec !== null ? `${metrics.riseTimeSec.toFixed(1)}s` : 'N/A';
+      metricSettleTime.textContent = `${metrics.settlingTimeSec.toFixed(1)}s`;
+      metricFinalLevel.textContent = `${data[data.length - 1].toFixed(1)}%`;
+    }
+
+    // Attach listeners
+    [inputKp, inputKi, inputKd, inputSp, inputNoise].forEach(input => {
+      input.addEventListener('input', runSimulation);
+    });
+
+    window.addEventListener('resize', runSimulation);
+    document.addEventListener('DOMContentLoaded', runSimulation);
+  </script>
+</body>
+</html>

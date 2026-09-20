@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ControlForge — Instrumentation & Control Engineering Platform</title>
+  <meta name="description" content="ControlForge: Measure. Model. Control. Automate. An instrumentation and control engineering platform combining interactive simulators, calculators, and technical case studies.">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* Home-specific Control Console styling */
+    body.console-body {
+      background-color: var(--bg);
+      overflow: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .console-stage {
+      width: 100%;
+      max-width: 1180px;
+      perspective: 1100px;
+    }
+
+    .console-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      transform-style: preserve-3d;
+      transition: transform 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+      position: relative;
+    }
+
+    /* Console Brass Rivets / Corner Screws */
+    .console-panel::before, .console-panel::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #383226;
+      border: 1px solid #18150F;
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.15);
+    }
+    .console-panel::before { top: 8px; left: 8px; }
+    .console-panel::after { top: 8px; right: 8px; }
+
+    .console-header {
+      padding: 1.25rem 1.75rem;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: var(--panel-2);
+    }
+
+    .console-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .console-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      color: var(--amber);
+      background: rgba(255, 176, 0, 0.08);
+      border: 1px solid var(--amber-dim);
+      padding: 3px 8px;
+      border-radius: var(--radius);
+    }
+
+    .console-title-group h1 {
+      font-size: 1.4rem;
+      letter-spacing: 0.03em;
+      line-height: 1.2;
+    }
+
+    .console-tagline {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+
+    .console-telemetry {
+      display: flex;
+      gap: 14px;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+    }
+
+    .telem-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-dim);
+    }
+
+    /* Console Grid Bays */
+    .console-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr 340px;
+      background-color: var(--line);
+      gap: 1px;
+    }
+
+    .console-bay {
+      background: var(--panel);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bay-label {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-faint);
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--line-soft);
+      padding-bottom: 0.5rem;
+    }
+
+    /* Instrument Bay (Left) */
+    .gauge-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: auto 0;
+    }
+
+    #gauge-canvas {
+      width: 200px;
+      height: 200px;
+    }
+
+    .instrument-meta {
+      margin-top: 1rem;
+      width: 100%;
+      background: var(--panel-2);
+      border: 1px solid var(--line-soft);
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .instrument-meta-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .instrument-meta-row span:last-child {
+      color: var(--text);
+    }
+
+    /* Process Bay (Center: Tank Loop) */
+    .process-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      position: relative;
+    }
+
+    .tank-loop-schematic {
+      width: 100%;
+      max-width: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .tank-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+
+    /* Physical Tank Graphic */
+    .tank-vessel {
+      width: 110px;
+      height: 150px;
+      border: 2px solid var(--line);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      background: #12100C;
+      position: relative;
+      display: flex;
+      flex-direction: column-reverse;
+      overflow: hidden;
+    }
+
+    .tank-water {
+      width: 100%;
+      height: 65%;
+      background: linear-gradient(180deg, rgba(79, 169, 138, 0.45) 0%, rgba(79, 169, 138, 0.2) 100%);
+      border-top: 2px solid var(--verdigris);
+      transition: height 0.3s ease;
+      position: relative;
+    }
+
+    .tank-water::before {
+      content: "";
+      position: absolute;
+      top: -3px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--verdigris);
+      opacity: 0.8;
+      box-shadow: 0 0 8px rgba(79, 169, 138, 0.8);
+    }
+
+    .tank-ticks {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-faint);
+    }
+
+    .loop-instruments {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inst-pill {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+    }
+
+    .inst-pill .inst-tag {
+      color: var(--amber);
+      font-weight: 600;
+    }
+
+    .inst-pill .inst-val {
+      color: var(--text);
+    }
+
+    .flow-wire {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-faint);
+      padding-top: 0.5rem;
+      border-top: 1px dashed var(--line-soft);
+    }
+
+    /* Navigation Switchboard Bay (Right) */
+    .switchboard-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: auto 0;
+    }
+
+    .switch-card {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .switch-card:hover {
+      border-color: var(--amber);
+      background: #221E17;
+      transform: translateX(4px);
+    }
+
+    .switch-card:hover .switch-lever {
+      border-color: var(--amber);
+      background: var(--amber);
+      color: #15130F;
+      box-shadow: 0 0 10px var(--amber-glow);
+    }
+
+    .switch-card:hover .switch-title {
+      color: var(--amber);
+    }
+
+    .switch-lever {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--amber);
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .switch-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+    }
+
+    .switch-title {
+      font-family: var(--font-heading);
+      font-size: 0.96rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      transition: color 0.2s ease;
+    }
+
+    .switch-desc {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .switch-badge {
+      margin-left: auto;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-faint);
+    }
+
+    /* Console Footer Strip */
+    .console-footer {
+      padding: 0.85rem 1.75rem;
+      border-top: 1px solid var(--line);
+      background: var(--panel-2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-faint);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .footer-spec-tags {
+      display: flex;
+      gap: 10px;
+    }
+
+    @media (max-width: 1024px) {
+      body.console-body {
+        overflow-y: auto;
+        height: auto;
+        padding: 1rem;
+      }
+      .console-grid {
+        grid-template-columns: 1fr;
+      }
+      .console-panel {
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="console-body engineering-grid-bg">
+
+  <main class="console-stage" id="console-stage">
+    <div class="console-panel" id="console-panel">
+      
+      <!-- Top Console Header Bar -->
+      <header class="console-header">
+        <div class="console-badge">
+          <div class="brand-mark">CF</div>
+          <div class="console-title-group">
+            <h1>ControlForge</h1>
+            <div class="console-tagline">MEASURE · MODEL · CONTROL · AUTOMATE</div>
+          </div>
+        </div>
+        <div class="console-telemetry">
+          <div class="telem-item">
+            <span class="status-dot online"></span>
+            <span>SYS · ONLINE</span>
+          </div>
+          <div class="telem-item">
+            <span class="status-dot active"></span>
+            <span>LOOP · CLOSED</span>
+          </div>
+          <div class="console-tag">PANEL #01 · ACTIVE</div>
+        </div>
+      </header>
+
+      <!-- Main Physical Console Bay Grid -->
+      <div class="console-grid">
+
+        <!-- Left Bay: Analog Instrument Bay -->
+        <section class="console-bay" aria-label="Analog Pressure Transmitter">
+          <div class="bay-label">
+            <span>BAY · 01 / ANALOG GAUGE</span>
+            <span>[PT-101]</span>
+          </div>
+
+          <div class="gauge-wrapper">
+            <canvas id="gauge-canvas" width="240" height="240" aria-label="Simulated analog pressure gauge needle rotating in real time"></canvas>
+          </div>
+
+          <div class="instrument-meta">
+            <div class="instrument-meta-row">
+              <span>TAG</span>
+              <span>PT-101</span>
+            </div>
+            <div class="instrument-meta-row">
+              <span>CALIBRATION</span>
+              <span>0 – 100 PSI</span>
+            </div>
+            <div class="instrument-meta-row">
+              <span>SIGNAL</span>
+              <span>4–20 mA · HART</span>
+            </div>
+            <div class="instrument-meta-row">
+              <span>ACCURACY</span>
+              <span>±0.075% SPAN</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Center Bay: Process Simulation Loop -->
+        <section class="console-bay" aria-label="Process Loop Schematic">
+          <div class="bay-label">
+            <span>BAY · 02 / CLOSED PROCESS LOOP</span>
+            <span>[TANK-101]</span>
+          </div>
+
+          <div class="process-display">
+            <div class="tank-loop-schematic">
+              <div class="tank-row">
+                <!-- Physical Tank Simulation Indicator -->
+                <div class="tank-vessel" title="Simulated Level Vessel">
+                  <div class="tank-water" id="tank-water-level"></div>
+                  <div class="tank-ticks">
+                    <span>100%</span>
+                    <span>75%</span>
+                    <span>50%</span>
+                    <span>25%</span>
+                    <span>0%</span>
+                  </div>
+                </div>
+
+                <!-- Loop Instruments State -->
+                <div class="loop-instruments">
+                  <div class="inst-pill">
+                    <span class="inst-tag">LT-101</span>
+                    <span class="inst-val" id="tank-readout-val">65.0%</span>
+                  </div>
+                  <div class="inst-pill">
+                    <span class="inst-tag">LIC-101</span>
+                    <span class="inst-val">SP: 65.0%</span>
+                  </div>
+                  <div class="inst-pill">
+                    <span class="inst-tag">LV-101</span>
+                    <span class="inst-val" id="valve-readout-val">48%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flow-wire">
+                <span>FEEDBACK: 4–20mA</span>
+                <span>⟶</span>
+                <span>PID (Kp=2.1, Ki=0.35)</span>
+                <span>⟶</span>
+                <span>TRIM: 3–15 PSI</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Bay: Physical Navigation Switchboard -->
+        <section class="console-bay" aria-label="Physical Station Selectors">
+          <div class="bay-label">
+            <span>BAY · 03 / STATION SELECTOR</span>
+            <span>[BUS-SWITCHES]</span>
+          </div>
+
+          <nav class="switchboard-nav" aria-label="Console Physical Navigation">
+            <a href="projects/index.html" class="switch-card" id="nav-projects">
+              <div class="switch-lever">01</div>
+              <div class="switch-info">
+                <span class="switch-title">Projects</span>
+                <span class="switch-desc">Case studies &amp; industrial architectures</span>
+              </div>
+              <span class="switch-badge">ENTER ⟶</span>
+            </a>
+
+            <a href="pid-lab/index.html" class="switch-card" id="nav-pid-lab">
+              <div class="switch-lever">02</div>
+              <div class="switch-info">
+                <span class="switch-title">PID Lab</span>
+                <span class="switch-desc">Real-time loop tuning simulator</span>
+              </div>
+              <span class="switch-badge">ENTER ⟶</span>
+            </a>
+
+            <a href="calculators/index.html" class="switch-card" id="nav-calculators">
+              <div class="switch-lever">03</div>
+              <div class="switch-info">
+                <span class="switch-title">Calculators</span>
+                <span class="switch-desc">4–20 mA conversion &amp; range/span</span>
+              </div>
+              <span class="switch-badge">ENTER ⟶</span>
+            </a>
+
+            <a href="notes/index.html" class="switch-card" id="nav-notes">
+              <div class="switch-lever">04</div>
+              <div class="switch-info">
+                <span class="switch-title">Field Notes</span>
+                <span class="switch-desc">Transmitter theory &amp; loop engineering</span>
+              </div>
+              <span class="switch-badge">ENTER ⟶</span>
+            </a>
+          </nav>
+        </section>
+
+      </div>
+
+      <!-- Bottom Console Status Strip -->
+      <footer class="console-footer">
+        <div>CORE STATION: CF-CR-MAIN-01 · REVISION 1.0.0</div>
+        <div class="footer-spec-tags">
+          <span>PARALLAX: CURSOR-LINKED</span>
+          <span>·</span>
+          <span>SIMULATION: DISCRETE RUNGE-KUTTA / EULER</span>
+        </div>
+      </footer>
+
+    </div>
+  </main>
+
+  <script src="assets/js/home-console.js"></script>
+</body>
+</html>

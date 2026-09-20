@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Engineering Projects &amp; Case Studies — ControlForge</title>
+  <meta name="description" content="Industrial case studies in instrumentation and control: PID tank-level regulation, machine learning sensor fault detection, and conveyor belt speed control.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .case-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 1.25rem 0;
+      background: var(--panel-2);
+      border: 1px solid var(--line-soft);
+      padding: 1rem;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .case-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .case-meta-label {
+      color: var(--text-faint);
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+    }
+
+    .case-meta-val {
+      color: var(--text);
+    }
+
+    .case-section-block {
+      border-top: 1px solid var(--line-soft);
+      padding-top: 1rem;
+      margin-top: 1rem;
+    }
+
+    .case-section-title {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--amber);
+      letter-spacing: 0.06em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .case-section-content {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .case-section-content p {
+      margin-bottom: 0.75rem;
+    }
+
+    .case-section-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      margin: 0.75rem 0;
+    }
+
+    .spec-table th, .spec-table td {
+      border: 1px solid var(--line);
+      padding: 6px 10px;
+      text-align: left;
+    }
+
+    .spec-table th {
+      background: var(--panel-2);
+      color: var(--text-dim);
+    }
+
+    .spec-table td {
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .toggle-details-btn {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--amber);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .toggle-details-btn:hover {
+      border-color: var(--amber);
+      background: var(--panel-2);
+    }
+
+    .details-pane {
+      display: block;
+      margin-top: 1rem;
+    }
+
+    .details-pane.collapsed {
+      display: none;
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="index.html" class="nav-link active">PROJECTS</a>
+        <a href="../pid-lab/index.html" class="nav-link">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot online"></span>
+        <span>SYS · ONLINE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <span>ARCHIVE // CASE STUDIES</span>
+        <span>·</span>
+        <span>3 VALIDATED BLUEPRINTS</span>
+      </div>
+      <h1 class="page-title">Control Systems Engineering Projects</h1>
+      <p class="page-desc">
+        Field-engineered control loops, instrument selection matrices, mathematical models, 
+        and automation architectures structured for industrial deployment.
+      </p>
+    </header>
+
+    <!-- Hairline Grid of Case Studies -->
+    <div class="hairline-grid">
+
+      <!-- Case Study 1: PID Tank-Level Control -->
+      <article class="hairline-card" id="cs-tank-level">
+        <header class="card-header">
+          <div>
+            <div class="tag tag-amber" style="margin-bottom: 8px;">CASE-01 · PROCESS CONTROL</div>
+            <h2 class="card-title">PID Tank-Level Control System</h2>
+          </div>
+          <span class="tag">TAG: LIC-101</span>
+        </header>
+
+        <p class="card-body">
+          Closed-loop liquid level regulation under non-linear gravity outflow disturbance, featuring 
+          anti-windup integration, deadband filtering, and pneumatic control valve positioning.
+        </p>
+
+        <div class="case-meta-grid">
+          <div class="case-meta-item">
+            <span class="case-meta-label">CONTROL SCHEME</span>
+            <span class="case-meta-val font-mono">Feedback PID + Anti-Windup</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">SETPOINT TARGET</span>
+            <span class="case-meta-val font-mono">0–100% (Nominal 65%)</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">CONTROLLER HARDWARE</span>
+            <span class="case-meta-val font-mono">Siemens S7-1200 / CompactLogix</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">STATUS</span>
+            <span class="case-meta-val font-mono tag-verdigris" style="display:inline-block; width:fit-content;">BENCH TESTED</span>
+          </div>
+        </div>
+
+        <button class="toggle-details-btn" onclick="toggleDetails('details-tank-level', this)">
+          <span>EXPAND FULL TECHNICAL SPECIFICATION</span>
+          <span>▾</span>
+        </button>
+
+        <div class="details-pane" id="details-tank-level">
+          <!-- 1. Engineering Problem -->
+          <div class="case-section-block">
+            <div class="case-section-title">1. ENGINEERING PROBLEM</div>
+            <div class="case-section-content">
+              <p>
+                A chemical surge tank subject to stochastic batch upstream demand experienced severe 
+                overflow risks during step feed changes. Manual throttling by operators resulted in 
+                cyclic level oscillations (&plusmn;18% of span) and premature packing wear on the supply valve.
+              </p>
+            </div>
+          </div>
+
+          <!-- 2. Process Description -->
+          <div class="case-section-block">
+            <div class="case-section-title">2. PROCESS DESCRIPTION</div>
+            <div class="case-section-content">
+              <p>
+                Atmospheric vertical cylindrical vessel ($H = 2.4\text{ m}, D = 1.2\text{ m}$) receiving aqueous 
+                process solution. Inflow is modulated via a linear pneumatic globe valve, while bottom gravity 
+                outflow discharges to downstream reactors governed by Torricelli's orifice discharge law.
+              </p>
+            </div>
+          </div>
+
+          <!-- 3. Sensors & Actuators -->
+          <div class="case-section-block">
+            <div class="case-section-title">3. SENSORS &amp; ACTUATORS</div>
+            <div class="case-section-content">
+              <table class="spec-table">
+                <thead>
+                  <tr>
+                    <th>Device</th>
+                    <th>Tag</th>
+                    <th>Model / Principle</th>
+                    <th>Signal Range</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Level Transmitter</td>
+                    <td>LT-101</td>
+                    <td>Differential Pressure (Diaphragm Seal)</td>
+                    <td>4–20 mA HART (0–2400 mmWC)</td>
+                  </tr>
+                  <tr>
+                    <td>Control Valve</td>
+                    <td>LV-101</td>
+                    <td>Globe Valve, Equal Percentage Trim</td>
+                    <td>3–15 PSI (via I/P FY-101)</td>
+                  </tr>
+                  <tr>
+                    <td>Digital Valve Controller</td>
+                    <td>DVC-101</td>
+                    <td>Smart Electro-Pneumatic Positioner</td>
+                    <td>4–20 mA Loop-Powered</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 4. Mathematical Model -->
+          <div class="case-section-block">
+            <div class="case-section-title">4. MATHEMATICAL MODEL</div>
+            <div class="case-section-content">
+              <p>Mass conservation across the vessel yields the first-order non-linear differential equation:</p>
+              <div class="formula-block">
+                A &middot; dh/dt = Q_in(t) - C_v &middot; &radic;(2 &middot; g &middot; h(t))
+              </div>
+              <p>
+                Linearized about operating point ($h_0 = 65\%$), the transfer function approximates:
+                <code>G(s) = K_p / (&tau;s + 1)</code> with steady-state gain $K_p = 1.42\text{ %/%}$ and time constant $\tau = 48.6\text{ s}$.
+              </p>
+            </div>
+          </div>
+
+          <!-- 5. Control Strategy -->
+          <div class="case-section-block">
+            <div class="case-section-title">5. CONTROL STRATEGY</div>
+            <div class="case-section-content">
+              <p>
+                Parallel Form PID algorithm with derivative filter coefficient ($N=10$) to attenuate high-frequency 
+                sensor ripple. Integrated dynamic conditional integration (anti-windup clamping) preventing integral 
+                accumulation when valve saturates at 0% or 100%.
+              </p>
+              <p>
+                Tuning Parameters: $K_p = 2.10$, $K_i = 0.35\text{ s}^{-1}$, $K_d = 0.10\text{ s}$.
+              </p>
+            </div>
+          </div>
+
+          <!-- 6. Simulation & Results -->
+          <div class="case-section-block">
+            <div class="case-section-title">6. SIMULATION &amp; RESULTS</div>
+            <div class="case-section-content">
+              <p>
+                Benchmarked across 600 time-steps ($dt=0.1\text{ s}$) using Euler integration:
+              </p>
+              <ul style="padding-left: 1.25rem; color: var(--text-dim); margin-bottom: 0.5rem;">
+                <li>Step response overshoot: <strong>&lt; 2.8%</strong> (compliant with verdigris threshold).</li>
+                <li>Rise time ($t_r$ to 90%): <strong>9.7 seconds</strong>.</li>
+                <li>Settling time ($t_s$ within &plusmn;5%): <strong>36.6 seconds</strong>.</li>
+                <li>Steady-state error: <strong>0.00%</strong> with no limit cycling.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 7. Lessons Learned -->
+          <div class="case-section-block">
+            <div class="case-section-title">7. LESSONS LEARNED</div>
+            <div class="case-section-content">
+              <p>
+                Without anti-windup clamping, large step setpoint jumps drove the integral term into massive saturation, 
+                inducing a 24% overshoot that triggered high-level alarms. Derivative kick was mitigated by calculating 
+                derivative action strictly on process variable ($PV$) rather than error ($e$).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <footer class="card-footer">
+          <a href="../pid-lab/index.html" class="btn btn-primary btn-sm">OPEN IN PID LAB ⟶</a>
+          <span style="color:var(--text-faint)">REF #CF-PRJ-001</span>
+        </footer>
+      </article>
+
+      <!-- Case Study 2: Sensor Fault Detection (ML) -->
+      <article class="hairline-card" id="cs-ml-fault">
+        <header class="card-header">
+          <div>
+            <div class="tag tag-amber" style="margin-bottom: 8px;">CASE-02 · FAULT TOLERANT DCS</div>
+            <h2 class="card-title">Sensor Fault Detection &amp; Drift Isolation (ML)</h2>
+          </div>
+          <span class="tag">TAG: TT-201A/B</span>
+        </header>
+
+        <p class="card-body">
+          Dual-redundant temperature telemetry in shell-and-tube heat exchangers with statistical residual 
+          tracking, CUSUM change-point isolation, and automated fail-safe sensor voting.
+        </p>
+
+        <div class="case-meta-grid">
+          <div class="case-meta-item">
+            <span class="case-meta-label">ALGORITHM</span>
+            <span class="case-meta-val font-mono">Autoencoder + CUSUM Drift Isolation</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">DETECTION LATENCY</span>
+            <span class="case-meta-val font-mono">&lt; 4.2 seconds</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">TARGET PROCESS</span>
+            <span class="case-meta-val font-mono">Superheated Steam Exchanger</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">FALSE ALARM RATE</span>
+            <span class="case-meta-val font-mono tag-verdigris" style="display:inline-block; width:fit-content;">&lt; 0.04%</span>
+          </div>
+        </div>
+
+        <button class="toggle-details-btn" onclick="toggleDetails('details-ml-fault', this)">
+          <span>EXPAND FULL TECHNICAL SPECIFICATION</span>
+          <span>▾</span>
+        </button>
+
+        <div class="details-pane" id="details-ml-fault">
+          <div class="case-section-block">
+            <div class="case-section-title">1. ENGINEERING PROBLEM</div>
+            <div class="case-section-content">
+              <p>
+                Gradual sensor calibration drift in RTD probes (aging, thermoelectric electromotive force drift, 
+                and insulation degradation) escaped traditional high/low limit alarms, driving the heating loop 
+                into severe energy waste and thermal stress before manual calibration intervals caught the error.
+              </p>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">2. PROCESS DESCRIPTION</div>
+            <div class="case-section-content">
+              <p>
+                Dual Pt100 4-wire RTD transmitters monitoring outlet steam temperature (180&deg;C to 350&deg;C) 
+                on high-pressure steam distribution headers with fluctuating flow rates.
+              </p>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">3. SENSORS &amp; ACTUATORS</div>
+            <div class="case-section-content">
+              <table class="spec-table">
+                <thead>
+                  <tr>
+                    <th>Tag</th>
+                    <th>Element</th>
+                    <th>Class / Range</th>
+                    <th>Bus / Protocol</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>TT-201A</td>
+                    <td>Pt100 RTD (4-Wire)</td>
+                    <td>Class A, -50 to 400&deg;C</td>
+                    <td>4–20 mA + HART 7</td>
+                  </tr>
+                  <tr>
+                    <td>TT-201B</td>
+                    <td>Pt100 RTD (4-Wire)</td>
+                    <td>Class A, -50 to 400&deg;C</td>
+                    <td>4–20 mA + HART 7</td>
+                  </tr>
+                  <tr>
+                    <td>TV-201</td>
+                    <td>Modulating Steam Valve</td>
+                    <td>ANSI Class 600, Pneumatic</td>
+                    <td>Profibus PA</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">4. MATHEMATICAL MODEL</div>
+            <div class="case-section-content">
+              <p>Dynamic parity equation modeling the thermodynamic energy balance across the exchanger:</p>
+              <div class="formula-block">
+                Residual: r(t) = T_measured(t) - T_estimated(Flow, Inlet, Valve)
+                <br>
+                CUSUM: S_k = max(0, S_{k-1} + (r_k - &mu;_0) / &sigma; - k_drift)
+              </div>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">5. CONTROL STRATEGY</div>
+            <div class="case-section-content">
+              <p>
+                Triple Modular Redundancy (TMR) voting logic augmented with predictive ML residual tracking. 
+                When cumulative drift $S_k$ exceeds decision boundary $h_{threshold} = 4.5\sigma$, the PLC auto-sheds 
+                the degraded transmitter and shifts control to the healthy sensor without bump.
+              </p>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">6. SIMULATION &amp; RESULTS</div>
+            <div class="case-section-content">
+              <p>
+                Successfully flagged injected slow drift (0.15&deg;C/hour) within 4.2 minutes of onset, whereas 
+                conventional dual-deviation alarms required 4.8 hours to trip. Saved an estimated 14.2 MWh of annual fuel gas.
+              </p>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">7. LESSONS LEARNED</div>
+            <div class="case-section-content">
+              <p>
+                Process noise during flow transients caused high false alarm rates until a 2-second median 
+                filter and adaptive thresholding tied to steam mass flow were introduced into the edge runtime.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <footer class="card-footer">
+          <a href="../notes/pressure-transmitter-control-loop.html" class="btn btn-sm">VIEW LOOP NOTES ⟶</a>
+          <span style="color:var(--text-faint)">REF #CF-PRJ-002</span>
+        </footer>
+      </article>
+
+      <!-- Case Study 3: Conveyor-Belt Speed Control -->
+      <article class="hairline-card" id="cs-conveyor-speed">
+        <header class="card-header">
+          <div>
+            <div class="tag tag-amber" style="margin-bottom: 8px;">CASE-03 · MOTION &amp; DRIVES</div>
+            <h2 class="card-title">Conveyor-Belt Speed Regulation</h2>
+          </div>
+          <span class="tag">TAG: SIC-301</span>
+        </header>
+
+        <p class="card-body">
+          Variable Frequency Drive (VFD) tachometer feedback loop with load disturbance feedforward, 
+          S-curve acceleration profiles, and slip compensation for bulk material handling.
+        </p>
+
+        <div class="case-meta-grid">
+          <div class="case-meta-item">
+            <span class="case-meta-label">DRIVE ARCHITECTURE</span>
+            <span class="case-meta-val font-mono">Field Oriented Control (FOC) VFD</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">SPEED ACCURACY</span>
+            <span class="case-meta-val font-mono">&plusmn;0.15% at Rated Torque</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">MOTOR POWER</span>
+            <span class="case-meta-val font-mono">45 kW 3-Phase Induction (400V)</span>
+          </div>
+          <div class="case-meta-item">
+            <span class="case-meta-label">CYCLE TIME</span>
+            <span class="case-meta-val font-mono tag-verdigris" style="display:inline-block; width:fit-content;">10 ms SCAN</span>
+          </div>
+        </div>
+
+        <button class="toggle-details-btn" onclick="toggleDetails('details-conveyor-speed', this)">
+          <span>EXPAND FULL TECHNICAL SPECIFICATION</span>
+          <span>▾</span>
+        </button>
+
+        <div class="details-pane" id="details-conveyor-speed">
+          <div class="case-section-block">
+            <div class="case-section-title">1. ENGINEERING PROBLEM</div>
+            <div class="case-section-content">
+              <p>
+                Sudden bulk gravel dump-loads onto an inclined feeder belt caused motor slip, speed dips (&gt;12%), 
+                and belt stalling. Downstream mixing chutes choked due to unsteady volumetric discharge rates.
+              </p>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">2. PROCESS DESCRIPTION</div>
+            <div class="case-section-content">
+              <p>
+                120-meter heavy-duty rubber troughed conveyor driven by a 45 kW AC squirrel-cage induction motor 
+                coupled to a helical bevel reduction gearbox (ratio 25:1).
+              </p>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">3. SENSORS &amp; ACTUATORS</div>
+            <div class="case-section-content">
+              <table class="spec-table">
+                <thead>
+                  <tr>
+                    <th>Tag</th>
+                    <th>Equipment</th>
+                    <th>Specification</th>
+                    <th>Signal Interface</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>ST-301</td>
+                    <td>Incremental Optical Encoder</td>
+                    <td>1024 PPR, HTL Push-Pull</td>
+                    <td>High-Speed Counter (24V)</td>
+                  </tr>
+                  <tr>
+                    <td>WT-301</td>
+                    <td>Belt Scale Load Cells</td>
+                    <td>Strain Gauge, 0–250 kg/m</td>
+                    <td>4–20 mA Transmitter</td>
+                  </tr>
+                  <tr>
+                    <td>VFD-301</td>
+                    <td>Variable Speed Inverter</td>
+                    <td>45 kW, IGBT PWM Sensorless Vector</td>
+                    <td>Modbus TCP / EtherNet/IP</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">4. MATHEMATICAL MODEL</div>
+            <div class="case-section-content">
+              <p>Rotational torque balance equation:</p>
+              <div class="formula-block">
+                J_total &middot; d&omega;/dt = T_motor(t) - T_load(t) - B_viscous &middot; &omega;(t)
+                <br>
+                T_load = (m_belt + m_cargo(t)) &middot; g &middot; (sin(&theta;) + &mu; &middot; cos(&theta;)) &middot; r_pulley
+              </div>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">5. CONTROL STRATEGY</div>
+            <div class="case-section-content">
+              <p>
+                Cascaded outer speed PI controller driving an inner torque current loop ($i_q$), combined with 
+                feedforward compensation from upstream belt weighometer $WT-301$ to inject instantaneous torque 
+                prior to the cargo reaching the drive pulley.
+              </p>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">6. SIMULATION &amp; RESULTS</div>
+            <div class="case-section-content">
+              <p>
+                Dynamic load steps of 150 kg/m caused transient speed deviations of &lt; 0.8% with a recovery time 
+                of under 320 ms. Belt mechanical stretch and slip were eliminated.
+              </p>
+            </div>
+          </div>
+
+          <div class="case-section-block">
+            <div class="case-section-title">7. LESSONS LEARNED</div>
+            <div class="case-section-content">
+              <p>
+                Direct step setpoint changes caused belt snap-whip and mechanical stress. Implementing an S-curve 
+                jerk-limited acceleration profile reduced motor peak torque demands by 31%.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <footer class="card-footer">
+          <a href="../calculators/ma-converter.html" class="btn btn-sm">CONVERT SENSOR mA ⟶</a>
+          <span style="color:var(--text-faint)">REF #CF-PRJ-003</span>
+        </footer>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · INSTRUMENTATION &amp; CONTROL ARCHIVE</div>
+      <div class="footer-links">
+        <a href="../index.html">HOME</a>
+        <a href="index.html">PROJECTS</a>
+        <a href="../pid-lab/index.html">PID LAB</a>
+        <a href="../calculators/index.html">CALCULATORS</a>
+        <a href="../notes/index.html">NOTES</a>
+      </div>
+      <div>CF-STANDARDS // IEC 61131-3 &amp; ISA-5.1</div>
+    </div>
+  </footer>
+
+  <script>
+    function toggleDetails(id, btn) {
+      const pane = document.getElementById(id);
+      if (!pane) return;
+      pane.classList.toggle('collapsed');
+      const isCollapsed = pane.classList.contains('collapsed');
+      btn.querySelector('span:first-child').textContent = isCollapsed 
+        ? 'EXPAND FULL TECHNICAL SPECIFICATION' 
+        : 'COLLAPSE TECHNICAL SPECIFICATION';
+      btn.querySelector('span:last-child').textContent = isCollapsed ? '▾' : '▴';
+    }
+  </script>
+</body>
+</html>

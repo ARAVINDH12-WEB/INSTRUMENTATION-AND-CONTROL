@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Engineering Notes &amp; Technical Guides — ControlForge</title>
+  <meta name="description" content="Technical monographs and field engineering guides in process instrumentation, industrial control loops, and sensor technologies.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .article-card {
+      background: var(--panel);
+      padding: 2rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .article-card:hover {
+      background-color: #201D17;
+      border-color: var(--amber);
+    }
+
+    .article-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--text-faint);
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="../pid-lab/index.html" class="nav-link">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="index.html" class="nav-link active">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot online"></span>
+        <span>SYS · ONLINE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <span>FIELD MONOGRAPHS // INSTRUMENTATION</span>
+        <span>·</span>
+        <span>ENGINEERING REPOSITORIES</span>
+      </div>
+      <h1 class="page-title">Technical Notes &amp; Whitepapers</h1>
+      <p class="page-desc">
+        Rigorous, practical engineering documentation on primary sensing elements, industrial transmitters, 
+        loop design standards, and DCS interfacing principles.
+      </p>
+    </header>
+
+    <div style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 880px;">
+
+      <!-- Featured Full Article -->
+      <article class="article-card">
+        <div class="article-meta-row">
+          <span class="tag tag-amber">GUIDE // INSTRUMENTATION</span>
+          <span>TAG: PT-101</span>
+          <span>·</span>
+          <span>12 MIN READ</span>
+          <span>·</span>
+          <span style="color: var(--verdigris);">COMPLETE MONOGRAPH</span>
+        </div>
+
+        <h2 style="font-size: 1.45rem;">
+          <a href="pressure-transmitter-control-loop.html" style="color: var(--text);">
+            How a Pressure Transmitter Participates in a Control Loop
+          </a>
+        </h2>
+
+        <p style="color: var(--text-dim); font-size: 0.95rem; margin-bottom: 0.5rem;">
+          A complete engineering examination of industrial pressure measurement: piezoresistive vs. capacitive 
+          sensing diaphragms, 4–20 mA HART signal synthesis, impulse line installation, calibration range/span, 
+          thermal drift mitigation, and end-to-end signal routing to the final control element.
+        </p>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line-soft); padding-top: 1rem; margin-top: 0.5rem;">
+          <a href="pressure-transmitter-control-loop.html" class="btn btn-primary btn-sm">READ COMPLETE GUIDE ⟶</a>
+          <span class="font-mono" style="font-size: 0.72rem; color: var(--text-faint);">CF-NOTE-001 // ISA-5.1 COMPLIANT</span>
+        </div>
+      </article>
+
+      <!-- Placeholder Guides in Archive -->
+      <article class="article-card" style="opacity: 0.75;">
+        <div class="article-meta-row">
+          <span class="tag">MONOGRAPH</span>
+          <span>TAG: TE-201 / RTD</span>
+          <span>·</span>
+          <span>COMING IN PHASE 2</span>
+        </div>
+
+        <h3 style="font-size: 1.2rem; color: var(--text-dim);">
+          RTD 2-Wire vs. 3-Wire vs. 4-Wire Lead Resistance Compensation
+        </h3>
+
+        <p style="color: var(--text-faint); font-size: 0.88rem; margin-bottom: 0;">
+          Derivation of Wheatstone bridge balancing and current excitation circuits in platinum resistance thermometry.
+        </p>
+      </article>
+
+      <article class="article-card" style="opacity: 0.75;">
+        <div class="article-meta-row">
+          <span class="tag">STANDARDS</span>
+          <span>TAG: SIL / IEC-61508</span>
+          <span>·</span>
+          <span>COMING IN PHASE 2</span>
+        </div>
+
+        <h3 style="font-size: 1.2rem; color: var(--text-dim);">
+          Safety Instrumented Systems (SIS) &amp; PFDavg Calculations
+        </h3>
+
+        <p style="color: var(--text-faint); font-size: 0.88rem; margin-bottom: 0;">
+          Probability of Failure on Demand, Proof Test Intervals, and 1oo2 vs 2oo3 architecture voting reliability.
+        </p>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · TECHNICAL KNOWLEDGE BASE</div>
+      <div class="footer-links">
+        <a href="../index.html">HOME</a>
+        <a href="../projects/index.html">PROJECTS</a>
+        <a href="../pid-lab/index.html">PID LAB</a>
+        <a href="../calculators/index.html">CALCULATORS</a>
+        <a href="index.html">NOTES</a>
+      </div>
+      <div>FIELD MONOGRAPHS // REV 1.0</div>
+    </div>
+  </footer>
+
+</body>
+</html>

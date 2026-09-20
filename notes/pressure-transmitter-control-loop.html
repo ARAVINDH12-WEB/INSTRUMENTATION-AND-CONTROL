@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How a Pressure Transmitter Participates in a Control Loop — ControlForge</title>
+  <meta name="description" content="Technical guide on industrial pressure transmitters: sensing principle, construction, 4-20mA calibration, loop flow diagram, and failure modes.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    /* Article-specific layout rules per design-tokens skill:
+       - No graph-paper grid under long-form reading content
+       - IBM Plex Serif for body paragraphs
+       - Space Grotesk for headings
+       - IBM Plex Mono strictly for machine data, tags, numbers, formulas */
+    body.article-body {
+      background-color: var(--bg);
+      background-image: none; /* No grid under long-form reading */
+    }
+
+    .article-container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem 1.5rem;
+    }
+
+    .article-header {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 2rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .article-prose {
+      color: var(--text);
+    }
+
+    .article-prose h2 {
+      font-family: var(--font-heading);
+      font-size: 1.55rem;
+      font-weight: 600;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--line-soft);
+      padding-bottom: 0.5rem;
+    }
+
+    .article-prose h3 {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      color: var(--text);
+    }
+
+    /* Long-form body paragraphs use IBM Plex Serif */
+    .article-prose p {
+      font-family: var(--font-serif);
+      font-size: 1.08rem;
+      line-height: 1.8;
+      color: #E2DBD0;
+      margin-bottom: 1.5rem;
+    }
+
+    .article-prose ul, .article-prose ol {
+      margin-bottom: 1.5rem;
+      padding-left: 1.5rem;
+    }
+
+    .article-prose li {
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      line-height: 1.75;
+      color: #E2DBD0;
+      margin-bottom: 0.6rem;
+    }
+
+    /* Signal Flow Diagram */
+    .flow-diagram-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      margin: 2.5rem 0;
+    }
+
+    .flow-diagram-title {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      margin-bottom: 1.25rem;
+      text-align: center;
+    }
+
+    .flow-stages-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .flow-stage {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      min-width: 120px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .flow-stage-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--amber);
+      font-weight: 600;
+    }
+
+    .flow-stage-name {
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .flow-stage-desc {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+
+    .flow-arrow {
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .flow-arrow-label {
+      font-size: 0.6rem;
+      color: var(--amber-dim);
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+
+    .spec-table-container {
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body class="article-body">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="../pid-lab/index.html" class="nav-link">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="index.html" class="nav-link active">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot online"></span>
+        <span>SYS · ONLINE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Article Body -->
+  <article class="article-container">
+    <header class="article-header">
+      <div class="page-kicker">
+        <a href="index.html" style="color:var(--amber);">NOTES ARCHIVE</a>
+        <span>/</span>
+        <span>INSTRUMENTATION MONOGRAPHS</span>
+        <span>/</span>
+        <span>TAG: PT-101</span>
+      </div>
+      <h1 class="page-title" style="font-size: 2.3rem; margin-top: 0.5rem; margin-bottom: 0.75rem;">
+        How a Pressure Transmitter Participates in a Control Loop
+      </h1>
+      <div style="display: flex; flex-wrap: wrap; gap: 14px; font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-dim); margin-top: 1rem;">
+        <span>AUTHOR: CONTROL SYSTEMS GROUP</span>
+        <span>·</span>
+        <span>STANDARDS: ISA-5.1 / IEC 60770</span>
+        <span>·</span>
+        <span>EST. TIME: 12 MIN READ</span>
+      </div>
+    </header>
+
+    <div class="article-prose">
+
+      <!-- Visual Signal Flow Diagram Card -->
+      <div class="flow-diagram-card">
+        <div class="flow-diagram-title">
+          FIGURE 1: CLOSED-LOOP INSTRUMENTATION SIGNAL FLOW ARCHITECTURE
+        </div>
+        <div class="flow-stages-row">
+          
+          <div class="flow-stage">
+            <span class="flow-stage-tag">PROCESS</span>
+            <span class="flow-stage-name">Pressure</span>
+            <span class="flow-stage-desc">Fluid Media (0–10 bar)</span>
+          </div>
+
+          <div class="flow-arrow">
+            <span class="flow-arrow-label">FORCE</span>
+            <span>⟶</span>
+          </div>
+
+          <div class="flow-stage">
+            <span class="flow-stage-tag">PRIMARY SENSOR</span>
+            <span class="flow-stage-name">Diaphragm</span>
+            <span class="flow-stage-desc">Deflection / &Delta;C</span>
+          </div>
+
+          <div class="flow-arrow">
+            <span class="flow-arrow-label">mV / pF</span>
+            <span>⟶</span>
+          </div>
+
+          <div class="flow-stage">
+            <span class="flow-stage-tag">TRANSMITTER [PT-101]</span>
+            <span class="flow-stage-name">Transmitter</span>
+            <span class="flow-stage-desc">4–20 mA + HART</span>
+          </div>
+
+          <div class="flow-arrow">
+            <span class="flow-arrow-label">CURRENT</span>
+            <span>⟶</span>
+          </div>
+
+          <div class="flow-stage">
+            <span class="flow-stage-tag">CONTROLLER</span>
+            <span class="flow-stage-name">PLC / DCS</span>
+            <span class="flow-stage-desc">PID Computation</span>
+          </div>
+
+          <div class="flow-arrow">
+            <span class="flow-arrow-label">3–15 PSI</span>
+            <span>⟶</span>
+          </div>
+
+          <div class="flow-stage">
+            <span class="flow-stage-tag">ACTUATOR [FV-101]</span>
+            <span class="flow-stage-name">Control Valve</span>
+            <span class="flow-stage-desc">Globe Valve Position</span>
+          </div>
+
+        </div>
+      </div>
+
+      <p class="lead">
+        In any automated process, control is strictly impossible without measurement. An actuator can throttle 
+        a steam line or choke a discharge manifold, but unless the controller receives a reliable, calibrated, 
+        and low-noise representation of the physical variable, optimal control degrades into instability.
+      </p>
+
+      <h2>1. Working Principle</h2>
+      <p>
+        The pressure transmitter serves as an electro-mechanical transducer that converts a physical fluid 
+        pressure (measured in kilopascals, bar, or pounds per square inch) into a standardized industrial 
+        analog current signal, typically 4 to 20 milliamperes direct current (mA DC).
+      </p>
+      <p>
+        Modern industrial transmitters primarily utilize either piezoresistive silicon strain gauges or 
+        variable capacitance sensing cells:
+      </p>
+      <ul>
+        <li>
+          <strong>Variable Capacitance Sensing:</strong> A sensing diaphragm is welded between two stationary 
+          capacitor plates isolated by high-dielectric silicone oil. As line pressure deflects the isolating 
+          diaphragm, oil transfers pressure directly onto the center sensing diaphragm. The resulting physical 
+          deflection changes the capacitance differential between the plates inversely and linearly.
+        </li>
+        <li>
+          <strong>Piezoresistive Strain Gauge:</strong> Semiconductor resistors are diffused into a silicon 
+          diaphragm arranged in a Wheatstone bridge topology. Applied pressure induces mechanical strain that 
+          alters the crystal lattice resistance, generating a millivolt output directly proportional to the strain.
+        </li>
+      </ul>
+
+      <h2>2. Construction &amp; Wetted Materials</h2>
+      <p>
+        An industrial transmitter operates in hostile process environments containing corrosive liquids, steam, 
+        pulsating flow, and severe ambient thermal swings. Its construction is partitioned into two distinct domains:
+      </p>
+      <ol>
+        <li>
+          <strong>The Wetted Sensor Capsule:</strong> The process interface flange, process isolating diaphragms, 
+          and drain/vent valves. Wetted diaphragms must be metallurgically compatible with the process chemistry; 
+          standard options include 316L Stainless Steel for clean air and water, Hastelloy C-276 for chlorinated 
+          or acid-rich streams, Monel for hydrofluoric compounds, and Tantalum for high-temperature chlorination.
+        </li>
+        <li>
+          <strong>The Dual-Compartment Electronics Housing:</strong> The electronics are sealed from field 
+          wiring connections by a terminal barrier wall. This prevents ambient moisture ingress, sulfur corrosion, 
+          and flammable vapor migration from penetrating the micro-controller amplifier board.
+        </li>
+      </ol>
+
+      <h2>3. Calibration Range, Span, and Turndown</h2>
+      <p>
+        Configuring a transmitter requires defining three fundamental metrological bounds:
+      </p>
+      <ul>
+        <li><strong>Lower Range Value (LRV):</strong> The physical pressure corresponding strictly to 4.00 mA (0% of span).</li>
+        <li><strong>Upper Range Value (URV):</strong> The physical pressure corresponding strictly to 20.00 mA (100% of span).</li>
+        <li><strong>Span:</strong> The algebraic difference between URV and LRV ($Span = URV - LRV$).</li>
+      </ul>
+      <p>
+        Transmitters feature a rated Upper Range Limit (URL). The ratio between URL and calibrated span is designated 
+        as the <em>turndown ratio</em> (e.g., 100:1). Operating at extreme turndown ratios amplifies ambient temperature 
+        effects and zero-drift errors relative to calibrated span.
+      </p>
+
+      <div class="formula-block">
+        <div class="formula-step">
+          <span class="step-num">[1]</span>
+          <span class="step-math">Signal Scaling: I_out = 4 + 16 &middot; ((P_measured - LRV) / (URV - LRV)) mA</span>
+        </div>
+        <div class="formula-step">
+          <span class="step-num">[2]</span>
+          <span class="step-math">Transmitter Turndown Ratio: R_td = URL / (URV - LRV)</span>
+        </div>
+        <div class="formula-step">
+          <span class="step-num">[3]</span>
+          <span class="step-math">Total Probable Error: TPE = &radic;(Accuracy&sup2; + Temp_Effect&sup2; + Static_Pressure&sup2;)</span>
+        </div>
+      </div>
+
+      <h2>4. Accuracy &amp; Temperature Effects</h2>
+      <p>
+        Reference accuracy is typically quoted at standard factory conditions (20&deg;C &plusmn; 2&deg;C) as &plusmn;0.04% 
+        to &plusmn;0.075% of calibrated span. However, field accuracy depends significantly on external process dynamics:
+      </p>
+      <ul>
+        <li>
+          <strong>Ambient Temperature Effect:</strong> Diaphragm fill fluid expands or contracts with ambient 
+          temperature swings between day and night, inducing an artificial offset on the zero point. Modern smart 
+          transmitters integrate an on-board RTD sensor directly adjacent to the sensing capsule to compute 
+          real-time digital thermal compensation.
+        </li>
+        <li>
+          <strong>Static Line Pressure Effect:</strong> In differential pressure flow measurement, high line static 
+          pressures (e.g., 100 bar) distort the sensor body, shifting both the zero reference and span slope.
+        </li>
+      </ul>
+
+      <h2>5. Common Failure Modes &amp; Troubleshooting</h2>
+      <div class="spec-table-container">
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Failure Symptom</th>
+              <th>Probable Cause</th>
+              <th>Diagnostic Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Current pegged at 3.6 mA or 21.5 mA</td>
+              <td>Sensor diaphragm rupture, bridge open circuit, or CPU failure</td>
+              <td>Query HART error status code via handheld communicator; inspect fill oil.</td>
+            </tr>
+            <tr>
+              <td>Signal reads flat 4.0 mA despite pressure rise</td>
+              <td>Impulse line isolation valve shut or winter freeze-up</td>
+              <td>Check root valve positions; inspect heat tracing and blow down purge lines.</td>
+            </tr>
+            <tr>
+              <td>Excessive process noise &gt; &plusmn;5% on DCS</td>
+              <td>Cavitation, pump pulsation, or electrical ground loop</td>
+              <td>Increase transmitter internal damping filter (e.g., &tau; = 0.5s to 2.0s); verify shield grounding at DCS rack only.</td>
+            </tr>
+            <tr>
+              <td>Zero shift following blowdown or steam cleaning</td>
+              <td>Thermal shock causing diaphragm permanent deformation</td>
+              <td>Allow cool-down; perform digital zero trim via HART communicator.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>6. Selection Criteria &amp; Specification Matrix</h2>
+      <p>
+        When drafting an instrument specification data sheet (ISA format), control engineers evaluate four crucial factors:
+      </p>
+      <ol>
+        <li>
+          <strong>Process Operating Envelope:</strong> Maximum allowable working pressure (MAWP) must exceed the 
+          piping design pressure by at least 25%, with rupture ratings exceeding hydrostatic test conditions.
+        </li>
+        <li>
+          <strong>Impulse Piping vs. Direct Mount:</strong> Direct coplanar mounting eliminates impulse piping leaks 
+          and plugging risks in clean services, whereas remote diaphragm seals with capillary tubes are mandatory 
+          for viscous, crystallizing, or high-temperature (&gt;150&deg;C) media.
+        </li>
+        <li>
+          <strong>Safety Integrity Level (SIL):</strong> For emergency shutdown loops (ESD), select SIL 2/3 certified 
+          transmitters featuring dangerous undetected failure rates ($\lambda_{DU}$) documented in an exida FMEDA report.
+        </li>
+        <li>
+          <strong>Communication Protocol:</strong> Ensure whether the plant standard requires 4–20 mA with superimposed 
+          HART 7, Foundation Fieldbus H1, or Profibus PA for remote diagnostics and asset management integration.
+        </li>
+      </ol>
+
+      <div class="formula-block" style="margin-top: 2rem;">
+        <div class="formula-step">
+          <span class="step-num">NEXT</span>
+          <span class="step-math">
+            To scale physical transmitter mA readings into process units live, launch our
+            <a href="../calculators/ma-converter.html" style="color:var(--amber); text-decoration:underline;">4–20 mA Signal Converter</a>.
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </article>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · INSTRUMENTATION TECHNICAL GUIDES</div>
+      <div class="footer-links">
+        <a href="../index.html">HOME</a>
+        <a href="../projects/index.html">PROJECTS</a>
+        <a href="../pid-lab/index.html">PID LAB</a>
+        <a href="../calculators/index.html">CALCULATORS</a>
+        <a href="index.html">NOTES</a>
+      </div>
+      <div>MONOGRAPH CF-NOTE-001 // ISA-5.1 COMPLIANT</div>
+    </div>
+  </footer>
+
+</body>
+</html>

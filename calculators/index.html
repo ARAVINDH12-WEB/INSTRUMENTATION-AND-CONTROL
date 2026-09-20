@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Engineering Calculators — ControlForge</title>
+  <meta name="description" content="Precision instrumentation engineering calculators: 4–20 mA current loop conversion, calibration accuracy, range/span, and sensor scaling.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="../pid-lab/index.html" class="nav-link">PID LAB</a>
+        <a href="index.html" class="nav-link active">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot online"></span>
+        <span>SYS · ONLINE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <span>SUITE // INSTRUMENTATION TOOLS</span>
+        <span>·</span>
+        <span>STANDARDIZED SCALING &amp; CALIBRATION</span>
+      </div>
+      <h1 class="page-title">Engineering Calculators</h1>
+      <p class="page-desc">
+        Field-verified calculation utilities for process instrumentation, signal conditioning, 
+        analog transmitter calibration, and loop check verification.
+      </p>
+    </header>
+
+    <div class="hairline-grid">
+
+      <!-- Featured Calculator: 4-20 mA Converter -->
+      <article class="hairline-card" style="border: 1px solid var(--amber-dim);">
+        <header class="card-header">
+          <div>
+            <div class="tag tag-amber" style="margin-bottom: 8px;">CALC-01 · CORE INSTRUMENTATION</div>
+            <h2 class="card-title">4–20 mA Transmitter Signal Scaler</h2>
+          </div>
+          <span class="tag tag-verdigris">LIVE // INTERACTIVE</span>
+        </header>
+
+        <p class="card-body">
+          Convert measured loop current (mA) to engineering process values (pressure, temperature, flow, level) 
+          and vice-versa. Displays all three intermediate calculation steps live per product requirements, 
+          with explicit out-of-bounds flagging and zero-span safety guards.
+        </p>
+
+        <div class="formula-block" style="margin: 0.5rem 0 1.25rem 0;">
+          <div class="formula-step">
+            <span class="step-num">REF</span>
+            <span class="step-math">Fraction = (I - 4) / 16 &ensp;|&ensp; PV = LRV + Fraction &middot; (URV - LRV)</span>
+          </div>
+        </div>
+
+        <footer class="card-footer">
+          <a href="ma-converter.html" class="btn btn-primary">LAUNCH CONVERTER ⟶</a>
+          <span style="color:var(--text-faint)">ISA-50.1 STANDARD</span>
+        </footer>
+      </article>
+
+      <!-- Roadmap Item: Percentage Error & Accuracy -->
+      <article class="hairline-card">
+        <header class="card-header">
+          <div>
+            <div class="tag" style="margin-bottom: 8px;">CALC-02 · METROLOGY</div>
+            <h2 class="card-title">Calibration Error &amp; Accuracy Analyzer</h2>
+          </div>
+          <span class="tag">PHASE 2</span>
+        </header>
+
+        <p class="card-body">
+          Five-point calibration curve generator (0%, 25%, 50%, 75%, 100%) calculating span error, 
+          zero shift, linearity deviation, and hysteresis against manufacturer tolerances (&plusmn;0.075% span).
+        </p>
+
+        <div class="formula-block" style="margin: 0.5rem 0 1.25rem 0;">
+          <div class="formula-step">
+            <span class="step-num">REF</span>
+            <span class="step-math">% Error = ((Measured - Actual) / Actual) &middot; 100%</span>
+          </div>
+        </div>
+
+        <footer class="card-footer">
+          <span class="tag">UPCOMING RELEASE</span>
+          <span style="color:var(--text-faint)">REF #CF-CALC-002</span>
+        </footer>
+      </article>
+
+      <!-- Roadmap Item: Control Valve Cv Sizing -->
+      <article class="hairline-card">
+        <header class="card-header">
+          <div>
+            <div class="tag" style="margin-bottom: 8px;">CALC-03 · FLUID MECHANICS</div>
+            <h2 class="card-title">Control Valve Cv &amp; Authority Sizing</h2>
+          </div>
+          <span class="tag">PHASE 2</span>
+        </header>
+
+        <p class="card-body">
+          Sizing of liquid and gas control valves per IEC 60534 standards, incorporating choked flow 
+          verification ($F_L$), pressure drop ratio ($x_T$), cavitation index, and valve authority ($N &ge; 0.3$).
+        </p>
+
+        <div class="formula-block" style="margin: 0.5rem 0 1.25rem 0;">
+          <div class="formula-step">
+            <span class="step-num">REF</span>
+            <span class="step-math">C_v = Q &middot; &radic;(SG / &Delta;P)</span>
+          </div>
+        </div>
+
+        <footer class="card-footer">
+          <span class="tag">UPCOMING RELEASE</span>
+          <span style="color:var(--text-faint)">REF #CF-CALC-003</span>
+        </footer>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · ENGINEERING CALCULATORS</div>
+      <div class="footer-links">
+        <a href="../index.html">HOME</a>
+        <a href="../projects/index.html">PROJECTS</a>
+        <a href="../pid-lab/index.html">PID LAB</a>
+        <a href="index.html">CALCULATORS</a>
+        <a href="../notes/index.html">NOTES</a>
+      </div>
+      <div>CALCULATOR REPOSITORY // REV 1.0</div>
+    </div>
+  </footer>
+
+</body>
+</html>
