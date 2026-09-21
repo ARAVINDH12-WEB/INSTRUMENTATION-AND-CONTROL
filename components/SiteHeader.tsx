@@ -11,6 +11,7 @@ export default function SiteHeader() {
     { name: "PROJECTS", href: "/projects" },
     { name: "PID LAB", href: "/pid-lab" },
     { name: "CALCULATORS", href: "/calculators" },
+    { name: "P&ID TRAINER", href: "/pid-trainer" },
     { name: "INTELLIGENCE", href: "/intelligence" },
     { name: "NOTES", href: "/notes" },
     { name: "DASHBOARD", href: "/dashboard" },
