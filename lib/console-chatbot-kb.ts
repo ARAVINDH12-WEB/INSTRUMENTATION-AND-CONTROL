@@ -308,6 +308,7 @@ export function queryConsoleChatbot(query: string): {
   entry?: KnowledgeEntry;
   answer: string;
   confidence: number;
+  rawScore?: number;
 } {
   const trimmed = query.trim();
   if (!trimmed) {
@@ -330,15 +331,19 @@ export function queryConsoleChatbot(query: string): {
     }
   }
 
-  // Acceptance threshold (calibrated to filter out general-knowledge queries like weather, greetings, sports)
-  const THRESHOLD = 1.1;
+  // Normalized confidence calculation (calibrated against 4.0 max expected score for full token + keyword match)
+  const confidence = Math.min(1.0, Math.max(0, highestScore / 4.0));
 
-  if (bestEntry && highestScore >= THRESHOLD) {
+  // Acceptance threshold on normalized scale (0.275 corresponds to raw score 1.10 / 4.0)
+  const CONFIDENCE_THRESHOLD = 0.275;
+
+  if (bestEntry && confidence >= CONFIDENCE_THRESHOLD) {
     return {
       matched: true,
       entry: bestEntry,
       answer: bestEntry.answer,
-      confidence: Math.min(1, highestScore / 4.0),
+      confidence,
+      rawScore: highestScore,
     };
   }
 
@@ -346,7 +351,8 @@ export function queryConsoleChatbot(query: string): {
     matched: false,
     answer:
       "QUERY UNRESOLVED // That topic is outside what I have on file in local memory. Try consulting the Notes, Calculators, or Projects sections.",
-    confidence: highestScore / 4.0,
+    confidence,
+    rawScore: highestScore,
   };
 }
 
