@@ -168,6 +168,26 @@ export default function LoopBuilderMode() {
       messages.push(`Missing mandatory components: ${missingTypes.map((t) => t.toUpperCase()).join(", ")}.`);
     }
 
+    // Check if all required loop segments are fulfilled
+    const missingConnections = scenario.validConnections.filter((req) => {
+      return !connections.some((c) => {
+        const fromNode = nodes.find((n) => n.id === c.fromId);
+        const toNode = nodes.find((n) => n.id === c.toId);
+        if (!fromNode || !toNode) return false;
+        return (
+          (fromNode.type === req.from && toNode.type === req.to) ||
+          (fromNode.type === req.to && toNode.type === req.from)
+        );
+      });
+    });
+
+    if (missingConnections.length > 0) {
+      allValid = false;
+      missingConnections.forEach((mc) => {
+        messages.push(`Missing loop segment: ${mc.from.toUpperCase()} ⟶ ${mc.to.toUpperCase()} (${mc.description}).`);
+      });
+    }
+
     if (connections.length < scenario.validConnections.length) {
       allValid = false;
       messages.push(
