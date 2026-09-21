@@ -22,6 +22,9 @@ export default function SiteFooter({ subtitle }: SiteFooterProps) {
           <Link href="/calculators" className="text-text-dim hover:text-amber transition-colors">
             CALCULATORS
           </Link>
+          <Link href="/intelligence" className="text-text-dim hover:text-amber transition-colors">
+            INTELLIGENCE
+          </Link>
           <Link href="/notes" className="text-text-dim hover:text-amber transition-colors">
             NOTES
           </Link>
