@@ -19,7 +19,7 @@ testQueries.forEach((q, idx) => {
   console.log(`QUERY: "${q}"`);
   console.log(`MATCHED: ${res.matched}`);
   console.log(`RAW RELEVANCE SCORE: ${res.rawScore !== undefined ? res.rawScore.toFixed(3) : "N/A"}`);
-  console.log(`NORMALIZED CONFIDENCE: ${res.confidence.toFixed(3)} (Threshold: 0.275, equiv. to raw score 1.10)`);
+  console.log(`LOG-SCALED CONFIDENCE: ${res.confidence.toFixed(3)} (Threshold: 0.262, equiv. to raw score 1.10, S_ref: 16.0)`);
   if (res.entry) {
     console.log(`ENTRY ID: ${res.entry.id} (${res.entry.title})`);
     console.log(`ROUTE: ${res.entry.routeRef}`);

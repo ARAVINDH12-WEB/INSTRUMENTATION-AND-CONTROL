@@ -331,13 +331,18 @@ export function queryConsoleChatbot(query: string): {
     }
   }
 
-  // Normalized confidence calculation (calibrated against 4.0 max expected score for full token + keyword match)
-  const confidence = Math.min(1.0, Math.max(0, highestScore / 4.0));
+  // Reference upper score with headroom based on observed KB query peaks (scores range 4 to 13+)
+  const S_REF = 16.0;
 
-  // Acceptance threshold on normalized scale (0.275 corresponds to raw score 1.10 / 4.0)
-  const CONFIDENCE_THRESHOLD = 0.275;
+  // Log-scaled confidence normalization to prevent early clipping at 1.000 and restore resolution:
+  // confidence = ln(1 + rawScore) / ln(1 + S_REF)
+  const confidence = Math.min(1.0, Math.max(0, Math.log(1 + highestScore) / Math.log(1 + S_REF)));
 
-  if (bestEntry && confidence >= CONFIDENCE_THRESHOLD) {
+  // Match acceptance threshold (raw score 1.10 maps to ~0.262 on log scale)
+  const RAW_THRESHOLD = 1.10;
+  const CONFIDENCE_THRESHOLD = Math.log(1 + RAW_THRESHOLD) / Math.log(1 + S_REF);
+
+  if (bestEntry && highestScore >= RAW_THRESHOLD) {
     return {
       matched: true,
       entry: bestEntry,
