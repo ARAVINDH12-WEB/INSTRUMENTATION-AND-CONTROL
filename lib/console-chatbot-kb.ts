@@ -202,7 +202,7 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     title: "Engineering Projects & Industrial Case Studies",
     keywords: ["projects", "case studies", "industrial architectures", "what projects are there"],
     answer:
-      "The Projects repository features 4 detailed engineering case studies with full ISA-5.1 specifications, mathematical transfer functions, and tuning rationale: 1) Chemical Surge Tank Level PID Control (LIC-101); 2) Dual-Redundant Sensor Fault & Drift Isolation (TT-201A/B); 3) High-Torque Conveyor VFD Speed Regulation (SIC-301); and 4) 6-DOF Robotic Arm Joint Servos (RIC-401).",
+      "The Projects repository features 6 detailed engineering case studies with full ISA-5.1 specifications, mathematical transfer functions, and tuning rationale: 1) Chemical Surge Tank Level PID Control (LIC-101); 2) Dual-Redundant Sensor Fault & Drift Isolation (TT-201A/B); 3) High-Torque Conveyor VFD Speed Regulation (SIC-301); 4) 6-DOF Robotic Arm Joint Servos (RIC-401); 5) Warehouse Automation & Cross-Belt Sorter (WMS-501); and 6) LSTM-Based Industrial Time-Series Forecasting (ML-601).",
     routeRef: "/projects",
   },
   {
@@ -221,6 +221,42 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     keywords: ["case 02", "sensor drift", "tt-201", "redundant rtd", "cusum"],
     answer:
       "Case Study 02 covers dual-redundant Pt100 RTD transmitters on superheated steam exchangers. By combining CUSUM statistical change-point detection with predictive residual tracking, slow sensor calibration drift (0.15°C/hr) is isolated in under 4.2 minutes, preventing thermal stress and unmeasured energy loss.",
+    routeRef: "/projects",
+  },
+  {
+    id: "project-case-3",
+    category: "projects",
+    title: "Case Study 03: Conveyor-Belt Speed Regulation (SIC-301)",
+    keywords: ["case 03", "conveyor", "sic-301", "vfd", "variable frequency drive", "tachometer"],
+    answer:
+      "Case Study 03 covers speed regulation on a 120-meter heavy-duty bulk conveyor driven by a 45 kW induction motor and vector VFD. It details cascaded speed PI control combined with feedforward load compensation from an upstream weighometer (WT-301), reducing dynamic dump-load speed dips from 12% to under 0.8%.",
+    routeRef: "/projects",
+  },
+  {
+    id: "project-case-4",
+    category: "projects",
+    title: "Case Study 04: Robotic Arm Multi-Axis Position Control (RIC-401)",
+    keywords: ["case 04", "robotic arm", "ric-401", "6-dof", "computed torque", "servo"],
+    answer:
+      "Case Study 04 explores a 6-DOF industrial articulating robot arm with 24-bit optical encoders. It implements a decoupled computed-torque feedforward architecture with decentralized joint PID servos over a 1 kHz EtherCAT bus, reducing trajectory tracking errors from ±1.8 mm to under ±0.04 mm.",
+    routeRef: "/projects",
+  },
+  {
+    id: "project-case-5",
+    category: "projects",
+    title: "Case Study 05: Warehouse Automation & Cross-Belt Sorter (WMS-501)",
+    keywords: ["case 05", "warehouse automation", "wms-501", "cross-belt", "sorter", "profinet"],
+    answer:
+      "Case Study 05 details a high-throughput linear induction cross-belt parcel sorter handling 12,000 parcels/hour over PROFINET IRT. It implements a FIFO shift-register position tracking system with dynamic induction spacing, dropping chute miss rates from 1.4% to under 0.02%.",
+    routeRef: "/projects",
+  },
+  {
+    id: "project-case-6",
+    category: "projects",
+    title: "Case Study 06: LSTM-Based Time-Series Forecasting (ML-601)",
+    keywords: ["case 06", "lstm", "ml-601", "catalytic reactor", "time-series forecasting", "runaway"],
+    answer:
+      "Case Study 06 details a 3-layer bi-directional LSTM neural network monitoring a 10,000 L pressurized catalytic batch reactor. By predicting thermal runaway excursions and heat-exchanger fouling 4.1 hours ahead of occurrence, it achieved zero false emergency shutdowns across an 18-month trial.",
     routeRef: "/projects",
   },
 
