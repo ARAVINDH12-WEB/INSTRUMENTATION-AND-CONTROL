@@ -148,6 +148,25 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     routeRef: "/pid-lab/tank-level",
   },
   {
+    id: "pid-cascade-simulator",
+    category: "pid-lab",
+    title: "Cascade & Feedforward Control Simulator",
+    keywords: [
+      "cascade control",
+      "feedforward simulator",
+      "inner loop",
+      "outer loop",
+      "master slave controller",
+      "lic-301",
+      "fic-301",
+      "feedforward gain",
+      "cascade simulation",
+    ],
+    answer:
+      "The Cascade & Feedforward simulator at /pid-lab/cascade models a dual-loop regulatory system: an outer Level Controller (LIC-301) calculates the remote setpoint for a fast inner Flow Controller (FIC-301) driving control valve FV-301. An additive feedforward block (FF-301) intercepts downstream demand surges and supply pressure drops, reducing peak disturbance error by up to 95% compared to single-loop feedback.",
+    routeRef: "/pid-lab/cascade",
+  },
+  {
     id: "pid-temperature-simulator",
     category: "pid-lab",
     title: "Temperature Control Simulator",

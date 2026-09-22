@@ -98,6 +98,239 @@ export function computeMetrics(data: number[], setpoint: number): MetricsResult 
   return { overshootPct, riseTimeSec, settlingTimeSec };
 }
 
+// --- Cascade & Feedforward Control Kernel ---
+
+export interface CascadeSimOpts extends SimOpts {
+  feedforwardGain?: number;
+  feedforwardEnabled?: boolean;
+  disturbanceType?: "none" | "supply_drop" | "demand_surge" | "combined";
+  disturbanceTimeSec?: number;
+}
+
+export interface DetailedMetrics extends MetricsResult {
+  maxDisturbanceError: number;
+  iae: number; // Integrated Absolute Error
+}
+
+export interface CascadeSimulationResult {
+  timeSec: number[];
+  cascade: {
+    level: number[];
+    flow: number[];
+    flowSetpoint: number[];
+    valveOutput: number[];
+    metrics: DetailedMetrics;
+  };
+  singleLoop: {
+    level: number[];
+    flow: number[];
+    valveOutput: number[];
+    metrics: DetailedMetrics;
+  };
+  disturbance: {
+    supplyFactor: number[];
+    demandSurge: number[];
+  };
+}
+
+/**
+ * Simulates a two-loop industrial Cascade + Feedforward tank-level process
+ * alongside a single-loop PID baseline subjected to identical disturbances.
+ *
+ * Outer Loop (Master): Level Controller LIC-301 -> generates dynamic flow setpoint
+ * Inner Loop (Slave):  Flow Controller FIC-301 -> fast valve actuator MV modulation
+ * Feedforward:         Injected on demand surge disturbance D(t)
+ */
+export function simulateCascadeTankPID(
+  outerGains: { kp: number; ki: number; kd: number },
+  innerGains: { kp: number; ki: number; kd?: number },
+  setpoint: number,
+  opts: CascadeSimOpts = {}
+): CascadeSimulationResult {
+  const dt = opts.dt ?? 0.1;
+  const steps = opts.steps ?? 600;
+  const outflowBase = opts.outflowBase ?? 0.6;
+  const valveGain = opts.valveGain ?? 0.02;
+  const noiseAmplitude = opts.noiseAmplitude ?? 0;
+  const initialLevel = opts.initialLevel ?? 20;
+
+  const ffGain = opts.feedforwardGain ?? 1.0;
+  const ffEnabled = opts.feedforwardEnabled ?? false;
+  const distType = opts.disturbanceType ?? "none";
+  const distTimeSec = opts.disturbanceTimeSec ?? 20;
+  const distStepIdx = Math.round(distTimeSec / dt);
+
+  // Time arrays
+  const timeSec: number[] = [];
+  const cascLevel: number[] = [];
+  const cascFlow: number[] = [];
+  const cascFlowSp: number[] = [];
+  const cascValve: number[] = [];
+
+  const singleLevel: number[] = [];
+  const singleFlow: number[] = [];
+  const singleValve: number[] = [];
+
+  const distSupply: number[] = [];
+  const distDemand: number[] = [];
+
+  // State variables - Cascade
+  let hCasc = initialLevel;
+  let intOuter = 0;
+  let prevErrOuter = 0;
+  let intInner = 0;
+  let prevErrInner = 0;
+
+  // State variables - Single Loop Baseline
+  let hSingle = initialLevel;
+  let intSingle = 0;
+  let prevErrSingle = 0;
+
+  // If initialLevel is at setpoint, initialize integrators to maintain steady state
+  const reqFlowSteady = (outflowBase * (initialLevel / 100)) / valveGain;
+  let qCasc = reqFlowSteady;
+  let qSingle = reqFlowSteady;
+
+  const isSteadyStart = Math.abs(initialLevel - setpoint) < 0.1;
+  if (isSteadyStart) {
+    intOuter = outerGains.ki > 0 ? reqFlowSteady / outerGains.ki : 0;
+    intInner = innerGains.ki > 0 ? reqFlowSteady / innerGains.ki : 0;
+    intSingle = outerGains.ki > 0 ? reqFlowSteady / outerGains.ki : 0;
+  }
+
+  const tauFlow = 0.3; // fast valve/fluid time constant (seconds)
+
+  for (let i = 0; i < steps; i++) {
+    const t = i * dt;
+    timeSec.push(Number(t.toFixed(1)));
+
+    // Disturbance profiles
+    // 1. Upstream supply pressure drop at t >= 20s
+    let supplyFactor = 1.0;
+    if ((distType === "supply_drop" || distType === "combined") && i >= distStepIdx) {
+      supplyFactor = 0.62; // 38% pressure loss
+    }
+    distSupply.push(supplyFactor);
+
+    // 2. Downstream demand surge (extra outflow)
+    let demandSurge = 0;
+    const demandStepIdx = distType === "combined" ? Math.round(35 / dt) : distStepIdx;
+    if ((distType === "demand_surge" || distType === "combined") && i >= demandStepIdx) {
+      demandSurge = 20; // 20% surge in flow demand
+    }
+    distDemand.push(demandSurge);
+
+    // Sensor noise
+    const noiseCasc = noiseAmplitude > 0 ? (Math.random() - 0.5) * 2 * noiseAmplitude : 0;
+    const noiseSingle = noiseAmplitude > 0 ? (Math.random() - 0.5) * 2 * noiseAmplitude : 0;
+
+    // --- 1. CASCADE CONTROLLER ---
+    // Outer Loop: Master Level LIC-301
+    const errOuter = setpoint - (hCasc + noiseCasc);
+    intOuter += errOuter * dt;
+    const derivOuter = (errOuter - prevErrOuter) / dt;
+
+    // Feedforward contribution (direct feedforward compensation on demand disturbance)
+    const ffCorrection = ffEnabled ? ffGain * demandSurge : 0;
+
+    // Outer controller sets remote setpoint for inner flow controller (0 - 100%)
+    let flowSp = outerGains.kp * errOuter + outerGains.ki * intOuter + outerGains.kd * derivOuter + ffCorrection;
+    flowSp = Math.max(0, Math.min(100, flowSp));
+    cascFlowSp.push(flowSp);
+
+    // Inner Loop: Slave Flow FIC-301 (runs fast PI on flow)
+    const errInner = flowSp - qCasc;
+    intInner += errInner * dt;
+    const kdInner = innerGains.kd ?? 0;
+    const derivInner = (errInner - prevErrInner) / dt;
+
+    let valveCasc = innerGains.kp * errInner + innerGains.ki * intInner + kdInner * derivInner;
+    valveCasc = Math.max(0, Math.min(100, valveCasc));
+    cascValve.push(valveCasc);
+
+    // Actuator/flow dynamics: valve movement + upstream supply pressure affects flow
+    const targetFlowCasc = valveCasc * supplyFactor;
+    qCasc += ((targetFlowCasc - qCasc) / tauFlow) * dt;
+    qCasc = Math.max(0, Math.min(100, qCasc));
+    cascFlow.push(qCasc);
+
+    // Tank Level accumulation
+    const inflowCasc = qCasc * valveGain;
+    const outflowCasc = outflowBase * (hCasc / 100) + demandSurge * (valveGain * 0.7);
+    hCasc += (inflowCasc - outflowCasc) * dt * 2;
+    hCasc = Math.max(0, Math.min(100, hCasc));
+    cascLevel.push(hCasc);
+
+    prevErrOuter = errOuter;
+    prevErrInner = errInner;
+
+    // --- 2. SINGLE-LOOP PID BASELINE ---
+    const errSingle = setpoint - (hSingle + noiseSingle);
+    intSingle += errSingle * dt;
+    const derivSingle = (errSingle - prevErrSingle) / dt;
+
+    let valveSingle = outerGains.kp * errSingle + outerGains.ki * intSingle + outerGains.kd * derivSingle;
+    valveSingle = Math.max(0, Math.min(100, valveSingle));
+    singleValve.push(valveSingle);
+
+    // Actuator/flow dynamics for single loop
+    const targetFlowSingle = valveSingle * supplyFactor;
+    qSingle += ((targetFlowSingle - qSingle) / tauFlow) * dt;
+    qSingle = Math.max(0, Math.min(100, qSingle));
+    singleFlow.push(qSingle);
+
+    const inflowSingle = qSingle * valveGain;
+    const outflowSingle = outflowBase * (hSingle / 100) + demandSurge * (valveGain * 0.7);
+    hSingle += (inflowSingle - outflowSingle) * dt * 2;
+    hSingle = Math.max(0, Math.min(100, hSingle));
+    singleLevel.push(hSingle);
+
+    prevErrSingle = errSingle;
+  }
+
+  // Calculate detailed performance metrics
+  const computeDetailed = (data: number[]): DetailedMetrics => {
+    const base = computeMetrics(data, setpoint);
+    let maxDistErr = 0;
+    let iae = 0;
+
+    for (let i = 0; i < data.length; i++) {
+      const err = Math.abs(data[i] - setpoint);
+      iae += err * dt;
+      if (i >= distStepIdx) {
+        if (err > maxDistErr) maxDistErr = err;
+      }
+    }
+
+    return {
+      ...base,
+      maxDisturbanceError: Number(maxDistErr.toFixed(2)),
+      iae: Number(iae.toFixed(1)),
+    };
+  };
+
+  return {
+    timeSec,
+    cascade: {
+      level: cascLevel,
+      flow: cascFlow,
+      flowSetpoint: cascFlowSp,
+      valveOutput: cascValve,
+      metrics: computeDetailed(cascLevel),
+    },
+    singleLoop: {
+      level: singleLevel,
+      flow: singleFlow,
+      valveOutput: singleValve,
+      metrics: computeDetailed(singleLevel),
+    },
+    disturbance: {
+      supplyFactor: distSupply,
+      demandSurge: distDemand,
+    },
+  };
+}
+
 // --- Process Simulations (Phase 2) ---
 
 /**

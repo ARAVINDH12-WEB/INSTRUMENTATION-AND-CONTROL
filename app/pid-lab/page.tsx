@@ -81,6 +81,12 @@ export default function PidLabPage() {
               ★ CLOSED-LOOP PID
             </Link>
             <Link
+              href="/pid-lab/cascade"
+              className="rounded border border-line bg-panel px-3 py-1.5 font-mono text-xs text-text-dim hover:border-amber hover:text-amber transition-colors"
+            >
+              CASCADE &amp; FEEDFORWARD
+            </Link>
+            <Link
               href="/pid-lab/tank-level"
               className="rounded border border-line bg-panel px-3 py-1.5 font-mono text-xs text-text-dim hover:border-amber hover:text-amber transition-colors"
             >
@@ -357,6 +363,13 @@ export default function PidLabPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-line border border-line rounded overflow-hidden">
             {[
+              {
+                title: "Cascade & Feedforward Control",
+                badge: "MULTI-LOOP",
+                desc: "Nested master level controller (LIC-301) driving slave flow loop (FIC-301) with feedforward disturbance cancellation.",
+                href: "/pid-lab/cascade",
+                tag: "SIM-00",
+              },
               {
                 title: "Standalone Tank Level",
                 badge: "OPEN LOOP",
