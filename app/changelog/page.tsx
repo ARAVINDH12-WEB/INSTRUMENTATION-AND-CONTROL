@@ -42,7 +42,7 @@ export default function ChangelogPage() {
                 </h2>
               </div>
               <Link
-                href="/simulators/cascade-control"
+                href="/pid-lab/cascade"
                 className="font-mono text-xs text-amber hover:underline flex items-center gap-1"
               >
                 <span>OPEN SIMULATOR</span>
@@ -57,8 +57,8 @@ export default function ChangelogPage() {
               </h3>
               <p className="font-sans text-sm text-text-dim leading-relaxed">
                 Constructed a modular, discrete-time two-loop tank level simulator at{" "}
-                <Link href="/simulators/cascade-control" className="text-text hover:text-amber underline">
-                  /simulators/cascade-control
+                <Link href="/pid-lab/cascade" className="text-text hover:text-amber underline">
+                  /pid-lab/cascade
                 </Link>{" "}
                 using pure, decoupled functions appended to the{" "}
                 <code className="font-mono text-xs text-amber">pid-simulation</code> skill:{" "}
