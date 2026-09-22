@@ -541,3 +541,384 @@ export function applyDisturbance(level: number, type: string): number | null | u
       return level;
   }
 }
+
+// --- Modular Cascade & Feedforward Control Kernel (Milestone Slice) ---
+
+export interface PidLoopState {
+  integral: number;
+  prevErr: number;
+}
+
+/**
+ * Process state: tank level under q_in / q_out
+ */
+export function applyTankProcess(
+  level: number,
+  qIn: number,
+  qOut: number,
+  area: number,
+  dt: number
+): number {
+  const dh = (qIn - qOut) / area;
+  return Math.max(0, Math.min(100, level + dh * dt));
+}
+
+/**
+ * Inner loop: fast flow control, runs every simulation step
+ */
+export function simulateInnerFlowLoop(
+  flowSetpoint: number,
+  currentFlow: number,
+  pidState: PidLoopState,
+  Kp: number,
+  Ki: number,
+  Kd: number,
+  dt: number
+): { valveCommand: number; pidState: PidLoopState } {
+  const err = flowSetpoint - currentFlow;
+  pidState.integral += err * dt;
+  const deriv = (err - pidState.prevErr) / dt;
+  const valveCommand = Kp * err + Ki * pidState.integral + Kd * deriv;
+  pidState.prevErr = err;
+  return { valveCommand, pidState };
+}
+
+/**
+ * Outer loop: slow level control, runs every N inner-loop steps
+ * outerStepsPerInnerStep is the EXPLICIT time-scale separation parameter
+ * (default 5, matching standard cascade-control guidance of 3-5x+ separation)
+ */
+export function simulateOuterLevelLoop(
+  levelSetpoint: number,
+  currentLevel: number,
+  pidState: PidLoopState,
+  Kp: number,
+  Ki: number,
+  Kd: number,
+  dt: number
+): { flowSetpoint: number; pidState: PidLoopState } {
+  const err = levelSetpoint - currentLevel;
+  pidState.integral += err * dt;
+  const deriv = (err - pidState.prevErr) / dt;
+  const flowSetpoint = Kp * err + Ki * pidState.integral + Kd * deriv;
+  pidState.prevErr = err;
+  return { flowSetpoint, pidState };
+}
+
+/**
+ * Feedforward: measured outlet flow feeds forward to inlet flow setpoint.
+ * Simplified 1:1 pass-through (q_in,ff ≈ q_out) assuming instantaneous compensation.
+ */
+export function calculateFeedforward(
+  measuredOutlet: number,
+  feedforwardGain: number
+): number {
+  return measuredOutlet * feedforwardGain;
+}
+
+export function applyValveLimits(
+  command: number,
+  minPct = 0,
+  maxPct = 100
+): number {
+  return Math.max(minPct, Math.min(maxPct, command));
+}
+
+export function applySensorNoise(
+  value: number,
+  noiseAmplitude: number
+): number {
+  return noiseAmplitude > 0
+    ? value + (Math.random() - 0.5) * 2 * noiseAmplitude
+    : value;
+}
+
+export interface ErrorMetrics {
+  iae: number;
+  ise: number;
+  itae: number;
+}
+
+/**
+ * Metrics: report IAE, ISE, AND ITAE together.
+ * IAE weights all error equally, ISE penalizes large deviations, ITAE penalizes persistent error.
+ */
+export function calculateMetrics(errorSeries: number[], dt: number): ErrorMetrics {
+  let iae = 0;
+  let ise = 0;
+  let itae = 0;
+  errorSeries.forEach((e, i) => {
+    const t = i * dt;
+    iae += Math.abs(e) * dt;
+    ise += e * e * dt;
+    itae += t * Math.abs(e) * dt;
+  });
+  return {
+    iae: Number(iae.toFixed(2)),
+    ise: Number(ise.toFixed(2)),
+    itae: Number(itae.toFixed(2)),
+  };
+}
+
+export interface ModularCascadeConfig {
+  architecture?: "single" | "cascade" | "cascade_feedforward";
+  levelSetpoint?: number;
+  initialLevel?: number;
+  outerKp?: number;
+  outerKi?: number;
+  outerKd?: number;
+  innerKp?: number;
+  innerKi?: number;
+  innerKd?: number;
+  outerStepsPerInnerStep?: number; // 1-10, default 5
+  feedforwardGain?: number; // 0-1, default 1.0
+  disturbanceMagnitude?: number; // extra outflow draw
+  disturbanceStartTime?: number; // seconds
+  noiseAmplitude?: number;
+  minValvePct?: number;
+  maxValvePct?: number;
+  tankArea?: number;
+  steps?: number;
+  dt?: number;
+}
+
+export interface ModularTimeSeries {
+  time: number[];
+  level: number[];
+  setpoint: number[];
+  qIn: number[];
+  qOut: number[];
+  valveCommand: number[];
+  innerError: number[];
+  outerError: number[];
+  metrics: ErrorMetrics & MetricsResult;
+}
+
+/**
+ * Orchestrates the modular cascade & feedforward tank simulation.
+ */
+export function simulateCascadeTank(config: ModularCascadeConfig = {}): ModularTimeSeries {
+  const dt = config.dt ?? 0.1;
+  const steps = config.steps ?? 600;
+  const setpoint = config.levelSetpoint ?? 50;
+  const initialLevel = config.initialLevel ?? setpoint;
+  const outerKp = config.outerKp ?? 1.8;
+  const outerKi = config.outerKi ?? 0.25;
+  const outerKd = config.outerKd ?? 0.4;
+  const innerKp = config.innerKp ?? 3.0;
+  const innerKi = config.innerKi ?? 3.0;
+  const innerKd = config.innerKd ?? 0.0;
+  const outerSteps = Math.max(1, Math.min(10, Math.round(config.outerStepsPerInnerStep ?? 5)));
+  const ffGain = config.feedforwardGain ?? 1.0;
+  const isFF = config.architecture === "cascade_feedforward";
+  const distMag = config.disturbanceMagnitude ?? 15;
+  const distTime = config.disturbanceStartTime ?? 20;
+  const distStepIdx = Math.round(distTime / dt);
+  const noiseAmp = config.noiseAmplitude ?? 0;
+  const minValve = config.minValvePct ?? 0;
+  const maxValve = config.maxValvePct ?? 100;
+  const area = config.tankArea ?? 4.0;
+  const baseOutflow = 20; // baseline outflow at operating point
+  const tauFlow = 1.2; // valve / fluid actuator time constant (seconds)
+
+  let level = initialLevel;
+  let qIn = baseOutflow;
+  let currentFlowSp = baseOutflow;
+  let valveCmd = baseOutflow;
+
+  const outerState: PidLoopState = {
+    integral: outerKi > 0 ? baseOutflow / outerKi : 0,
+    prevErr: 0,
+  };
+  const innerState: PidLoopState = {
+    integral: innerKi > 0 ? baseOutflow / innerKi : 0,
+    prevErr: 0,
+  };
+
+  const timeArr: number[] = [];
+  const levelArr: number[] = [];
+  const spArr: number[] = [];
+  const qInArr: number[] = [];
+  const qOutArr: number[] = [];
+  const valveArr: number[] = [];
+  const innerErrArr: number[] = [];
+  const outerErrArr: number[] = [];
+  const errorSeries: number[] = [];
+
+  for (let i = 0; i < steps; i++) {
+    const t = Number((i * dt).toFixed(2));
+    timeArr.push(t);
+    spArr.push(setpoint);
+
+    // 1. Disturbance model: step increase in outflow
+    const disturbance = i >= distStepIdx ? distMag : 0;
+    const qOut = baseOutflow + disturbance;
+    qOutArr.push(qOut);
+
+    // 2. Sensor measurement with optional noise
+    const measuredLevel = applySensorNoise(level, noiseAmp);
+    const measuredFlow = applySensorNoise(qIn, noiseAmp * 0.5);
+
+    // 3. Outer Level Loop (runs every outerSteps inner steps)
+    if (i % outerSteps === 0) {
+      const outerDt = dt * outerSteps;
+      const { flowSetpoint, pidState: newOuterState } = simulateOuterLevelLoop(
+        setpoint,
+        measuredLevel,
+        outerState,
+        outerKp,
+        outerKi,
+        outerKd,
+        outerDt
+      );
+      Object.assign(outerState, newOuterState);
+
+      // Add feedforward if enabled (measured disturbance feeds forward)
+      const ffTerm = isFF ? calculateFeedforward(disturbance, ffGain) : 0;
+      currentFlowSp = Math.max(minValve, Math.min(maxValve, flowSetpoint + ffTerm));
+    }
+
+    const outerErr = setpoint - measuredLevel;
+    outerErrArr.push(outerErr);
+    errorSeries.push(outerErr);
+
+    // 4. Inner Flow Loop (runs every step dt)
+    const { valveCommand: rawValve, pidState: newInnerState } = simulateInnerFlowLoop(
+      currentFlowSp,
+      measuredFlow,
+      innerState,
+      innerKp,
+      innerKi,
+      innerKd,
+      dt
+    );
+    Object.assign(innerState, newInnerState);
+
+    const innerErr = currentFlowSp - measuredFlow;
+    innerErrArr.push(innerErr);
+
+    // 5. Valve saturation limits
+    valveCmd = applyValveLimits(rawValve, minValve, maxValve);
+    valveArr.push(valveCmd);
+
+    // 6. Valve / Inflow dynamics
+    qIn += ((valveCmd - qIn) / tauFlow) * dt;
+    qIn = applyValveLimits(qIn, minValve, maxValve);
+    qInArr.push(qIn);
+
+    // 7. Tank accumulation process
+    level = applyTankProcess(level, qIn, qOut, area, dt);
+    levelArr.push(level);
+  }
+
+  const baseMetrics = computeMetrics(levelArr, setpoint);
+  const detailedMetrics = calculateMetrics(errorSeries, dt);
+
+  return {
+    time: timeArr,
+    level: levelArr,
+    setpoint: spArr,
+    qIn: qInArr,
+    qOut: qOutArr,
+    valveCommand: valveArr,
+    innerError: innerErrArr,
+    outerError: outerErrArr,
+    metrics: {
+      ...baseMetrics,
+      ...detailedMetrics,
+    },
+  };
+}
+
+/**
+ * Simulates a single-loop PID controller directly modulating the valve
+ * under the identical process and disturbance parameters.
+ */
+export function simulateSingleLoopTank(config: ModularCascadeConfig = {}): ModularTimeSeries {
+  const dt = config.dt ?? 0.1;
+  const steps = config.steps ?? 600;
+  const setpoint = config.levelSetpoint ?? 50;
+  const initialLevel = config.initialLevel ?? setpoint;
+  const Kp = config.outerKp ?? 1.8;
+  const Ki = config.outerKi ?? 0.25;
+  const Kd = config.outerKd ?? 0.4;
+  const distMag = config.disturbanceMagnitude ?? 15;
+  const distTime = config.disturbanceStartTime ?? 20;
+  const distStepIdx = Math.round(distTime / dt);
+  const noiseAmp = config.noiseAmplitude ?? 0;
+  const minValve = config.minValvePct ?? 0;
+  const maxValve = config.maxValvePct ?? 100;
+  const area = config.tankArea ?? 4.0;
+  const baseOutflow = 20;
+  const tauFlow = 1.2; // valve / fluid actuator time constant (seconds)
+
+  let level = initialLevel;
+  let qIn = baseOutflow;
+  let valveCmd = baseOutflow;
+
+  const pidState: PidLoopState = {
+    integral: Ki > 0 ? baseOutflow / Ki : 0,
+    prevErr: 0,
+  };
+
+  const timeArr: number[] = [];
+  const levelArr: number[] = [];
+  const spArr: number[] = [];
+  const qInArr: number[] = [];
+  const qOutArr: number[] = [];
+  const valveArr: number[] = [];
+  const errorSeries: number[] = [];
+
+  const outerSteps = Math.max(1, Math.min(10, Math.round(config.outerStepsPerInnerStep ?? 5)));
+
+  for (let i = 0; i < steps; i++) {
+    const t = Number((i * dt).toFixed(2));
+    timeArr.push(t);
+    spArr.push(setpoint);
+
+    const disturbance = i >= distStepIdx ? distMag : 0;
+    const qOut = baseOutflow + disturbance;
+    qOutArr.push(qOut);
+
+    const measuredLevel = applySensorNoise(level, noiseAmp);
+    const err = setpoint - measuredLevel;
+    errorSeries.push(err);
+
+    // Single-loop level controller executes at outer level loop sampling rate
+    if (i % outerSteps === 0) {
+      const outerDt = dt * outerSteps;
+      pidState.integral += err * outerDt;
+      const deriv = (err - pidState.prevErr) / outerDt;
+      const rawValve = Kp * err + Ki * pidState.integral + Kd * deriv;
+      pidState.prevErr = err;
+      valveCmd = applyValveLimits(rawValve, minValve, maxValve);
+    }
+
+    valveArr.push(valveCmd);
+
+    qIn += ((valveCmd - qIn) / tauFlow) * dt;
+    qIn = applyValveLimits(qIn, minValve, maxValve);
+    qInArr.push(qIn);
+
+    level = applyTankProcess(level, qIn, qOut, area, dt);
+    levelArr.push(level);
+  }
+
+  const baseMetrics = computeMetrics(levelArr, setpoint);
+  const detailedMetrics = calculateMetrics(errorSeries, dt);
+
+  return {
+    time: timeArr,
+    level: levelArr,
+    setpoint: spArr,
+    qIn: qInArr,
+    qOut: qOutArr,
+    valveCommand: valveArr,
+    innerError: errorSeries,
+    outerError: errorSeries,
+    metrics: {
+      ...baseMetrics,
+      ...detailedMetrics,
+    },
+  };
+}

@@ -243,3 +243,82 @@ function applyDisturbance(level, type) {
   }
 }
 ```
+
+## Modular Cascade & Feedforward Control Architecture (Milestone Slice)
+
+This modular architecture separates the process state, inner fast flow loop, outer slow level loop, and feedforward blocks into pure, reusable functions:
+
+```javascript
+// Process state: tank level under q_in / q_out
+function applyTankProcess(level, qIn, qOut, area, dt) {
+  const dh = (qIn - qOut) / area;
+  return Math.max(0, Math.min(100, level + dh * dt));
+}
+
+// Inner loop: fast flow control, runs every simulation step
+function simulateInnerFlowLoop(flowSetpoint, currentFlow, pidState, Kp, Ki, Kd, dt) {
+  const err = flowSetpoint - currentFlow;
+  pidState.integral += err * dt;
+  const deriv = (err - pidState.prevErr) / dt;
+  let valveCommand = Kp*err + Ki*pidState.integral + Kd*deriv;
+  pidState.prevErr = err;
+  return { valveCommand, pidState };
+}
+
+// Outer loop: slow level control, runs every N inner-loop steps
+// outerStepsPerInnerStep is the EXPLICIT time-scale separation parameter
+// (default 5, matching standard cascade-control guidance of 3-5x+ 
+// separation — make this a UI-adjustable input, not a hidden constant)
+function simulateOuterLevelLoop(levelSetpoint, currentLevel, pidState, Kp, Ki, Kd, dt) {
+  const err = levelSetpoint - currentLevel;
+  pidState.integral += err * dt;
+  const deriv = (err - pidState.prevErr) / dt;
+  let flowSetpoint = Kp*err + Ki*pidState.integral + Kd*deriv;
+  pidState.prevErr = err;
+  return { flowSetpoint, pidState };
+}
+
+// Feedforward: measured outlet flow feeds forward to inlet flow setpoint.
+// NOTE: this is a simplified 1:1 pass-through (q_in,ff ≈ q_out) that 
+// assumes instantaneous, perfect compensation with no transport delay or 
+// process dynamics between the feedforward action and its effect on 
+// level. This is a KNOWN LIMITATION, not a bug — document it visibly in 
+// the UI (a labeled caveat near the feedforward gain slider), not just 
+// in a code comment.
+function calculateFeedforward(measuredOutlet, feedforwardGain) {
+  return measuredOutlet * feedforwardGain;
+}
+
+function applyValveLimits(command, minPct = 0, maxPct = 100) {
+  return Math.max(minPct, Math.min(maxPct, command));
+}
+
+function applySensorNoise(value, noiseAmplitude) {
+  return noiseAmplitude > 0 ? value + (Math.random()-0.5)*2*noiseAmplitude : value;
+}
+
+// Metrics: report IAE, ISE, AND ITAE together, not IAE alone — IAE 
+// weights all error equally, ISE penalizes large transient deviations 
+// more heavily, ITAE penalizes long-duration error more heavily. Having 
+// only one metric risks architectures looking artificially similar; 
+// report all three so differences actually show up.
+function calculateMetrics(errorSeries, dt) {
+  let iae = 0, ise = 0, itae = 0;
+  errorSeries.forEach((e, i) => {
+    const t = i * dt;
+    iae += Math.abs(e) * dt;
+    ise += e*e * dt;
+    itae += t * Math.abs(e) * dt;
+  });
+  return { iae, ise, itae };
+}
+
+function simulateCascadeTank(config) {
+  // orchestrates the above: runs inner loop every step, outer loop every
+  // outerStepsPerInnerStep steps, applies valve limits and sensor noise,
+  // applies a step disturbance to qOut at config.disturbanceStartTime,
+  // returns full time-series (level, setpoint, qIn, qOut, valveCommand,
+  // innerError, outerError) plus final calculateMetrics() output
+}
+```
+

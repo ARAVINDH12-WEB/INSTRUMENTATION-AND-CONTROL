@@ -34,6 +34,9 @@ export default function SiteFooter({ subtitle }: SiteFooterProps) {
           <Link href="/dashboard" className="text-text-dim hover:text-amber transition-colors">
             DASHBOARD
           </Link>
+          <Link href="/changelog" className="text-text-dim hover:text-amber transition-colors">
+            CHANGELOG
+          </Link>
         </div>
         <div>{subtitle || "STANDARDS // ISA-5.1 · IEC 61131-3 · NAMUR NE43"}</div>
       </div>
