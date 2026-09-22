@@ -78,13 +78,13 @@ function generateNormalData(n: number, seed: number = 42): SensorSample[] {
   let level = 50;
 
   for (let i = 0; i < n; i++) {
-    // Base process state
-    const pressure = 100 + randn() * 3; // ~100 kPa ± 3
-    // Flow inversely related to pressure via orifice-like relationship
-    const flowBase = 200 - 0.8 * (pressure - 100); // inverse coupling
+    // Upstream driving pressure: ~100 kPa ± 3
+    const pressure = 100 + randn() * 3;
+    // Normal orifice flow: flow positively tracks driving pressure (Q ∝ √ΔP)
+    const flowBase = 200 + 1.2 * (pressure - 100);
     const flow = flowBase + randn() * 4; // ~200 L/min ± noise
 
-    // Level tracks net flow accumulation (slow integrator)
+    // Tank level tracks net flow accumulation (slow integrator)
     level += (flow - 200) * 0.01 + randn() * 0.3;
     level = Math.max(20, Math.min(80, level));
 
@@ -118,39 +118,36 @@ function injectAnomaly(data: SensorSample[], scenario: ScenarioType): SensorSamp
   const { randn } = createPRNG(99);
 
   if (scenario === "pressure_flow_mismatch") {
-    // Scenario 1: High pressure but unexpectedly LOW flow
-    // Violates the normal inverse P-F relationship
+    // Scenario 2 (Spec): High pressure + unexpectedly LOW flow
+    // Line restriction / closed block valve: pressure builds upstream (+4σ), but flow collapses (-3.6σ)
     for (let i = injectionStart; i < injectionStart + 30 && i < n; i++) {
-      result[i].pressure += 12; // pressure rises significantly
-      result[i].flow += 15;     // flow ALSO rises (should drop under normal relationship)
+      result[i].pressure += 12; // pressure surges
+      result[i].flow -= 18;     // flow collapses, violating normal positive P-F relationship
     }
   } else if (scenario === "temp_vibration_fault") {
-    // Scenario 2: Temperature normal, vibration abnormal
+    // Scenario 3: Temperature normal, vibration abnormal
     // Bearing degradation signature — invisible on temp-only or vibration-only threshold
-    // because vibration stays within its own range but becomes correlated with temperature
     for (let i = injectionStart; i < injectionStart + 40 && i < n; i++) {
       result[i].vibration += 3.5 + Math.sin((i - injectionStart) * 0.3) * 1.5;
-      // Temperature stays normal — this is a mechanical fault, not thermal
     }
   } else if (scenario === "gradual_drift") {
-    // Scenario 3: Slowly drifting pressure-flow relationship
-    // Not a sudden jump — a progressive degradation (e.g., valve wear, fouling)
+    // Scenario 4: Slowly drifting pressure-flow relationship
+    // Progressive fouling / valve wear: flow drops gradually while pressure slightly rises
     for (let i = injectionStart; i < n; i++) {
       const progress = (i - injectionStart) / (n - injectionStart);
-      // Pressure-flow coupling gradually inverts
-      result[i].flow += progress * 18; // flow drifts up while pressure stays same
-      result[i].level += progress * 3;  // level rises as excess flow accumulates
+      result[i].pressure += progress * 6;
+      result[i].flow -= progress * 20;
+      result[i].level -= progress * 2.5;
     }
   } else if (scenario === "simultaneous_moderate") {
-    // Scenario 4: CRITICAL TEST — multiple sensors deviate moderately
-    // None individually exceeds a 2σ single-sensor threshold,
+    // Scenario 5: CRITICAL TEST — multiple sensors deviate moderately (< 2.0σ individual)
     // but the JOINT deviation breaks process correlation and is statistically significant
     for (let i = injectionStart; i < injectionStart + 35 && i < n; i++) {
       result[i].temperature = 65 + 1.6 + (randn() * 0.3); // z ≈ 1.0-1.3σ
       result[i].pressure = 100 + 3.8 + (randn() * 0.5);   // z ≈ 1.1-1.5σ
-      result[i].flow = 200 + 6.0 + (randn() * 0.8);       // z ≈ 1.1-1.6σ (violates inverse P-F coupling!)
+      result[i].flow = 200 - 5.5 + (randn() * 0.8);       // z ≈ 1.0-1.4σ (violates positive P-F coupling)
       result[i].level = 47.8 + 1.5 + (randn() * 0.2);     // z ≈ 1.0-1.4σ
-      result[i].vibration = 3.0 + 0.55 + (Math.abs(randn()) * 0.1); // z ≈ 1.1-1.6σ
+      result[i].vibration = 3.0 + 0.55 + (Math.abs(randn()) * 0.1); // z ≈ 1.1-1.5σ
     }
   }
 
@@ -353,7 +350,7 @@ const SCENARIOS: { id: ScenarioType; label: string; desc: string; color: string 
   {
     id: "pressure_flow_mismatch",
     label: "2. PRESSURE–FLOW RELATIONSHIP VIOLATION",
-    desc: "High pressure with unexpectedly high flow — orifice correlation breaks",
+    desc: "High pressure with unexpectedly low flow — line blockage / jammed valve violates normal P–F coupling",
     color: "text-crimson",
   },
   {
