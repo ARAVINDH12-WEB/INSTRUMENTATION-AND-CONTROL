@@ -40,6 +40,16 @@ const modules = [
     metrics: ["HOLT LINEAR TREND", "LEVEL & SLOPE SMOOTHING", "90% CONFIDENCE BAND"],
     cta: "LAUNCH FORECASTER ⟶",
   },
+  {
+    id: "MOD-04",
+    tag: "MULTIVARIATE PROCESS CONTROL",
+    tagColor: "tag-crimson",
+    title: "Multi-Sensor Anomaly Detection",
+    desc: "Unsupervised multivariate anomaly detection using rolling Mahalanobis distance from the expected joint sensor distribution. Identifies abnormal inter-sensor relationships invisible to single-variable detectors.",
+    href: "/intelligence/anomaly-detection",
+    metrics: ["MAHALANOBIS DISTANCE", "COVARIANCE MATRIX", "JOINT DEVIATION SCORE"],
+    cta: "LAUNCH ANOMALY DETECTOR ⟶",
+  },
 ];
 
 export default function IntelligenceLandingPage() {

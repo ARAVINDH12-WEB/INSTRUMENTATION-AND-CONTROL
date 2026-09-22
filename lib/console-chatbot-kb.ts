@@ -183,7 +183,7 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     title: "Industrial Intelligence Section Overview",
     keywords: ["intelligence", "machine learning", "ml", "ai", "what is in intelligence", "industrial intelligence"],
     answer:
-      "The Industrial Intelligence section demonstrates statistical edge AI and predictive telemetry for plant instrumentation. It houses three modules backed by a Python FastAPI engine: 1) Statistical Anomaly & Fault Detection (MAD / Modified Z-Scores); 2) Predictive Maintenance & Remaining Useful Life (Weibull degradation); and 3) Thermal Trend Forecasting (Holt's Double Exponential Smoothing).",
+      "The Industrial Intelligence section demonstrates statistical edge AI and predictive telemetry for plant instrumentation. It houses four modules: 1) Statistical Anomaly & Fault Detection (MAD / Modified Z-Scores); 2) Predictive Maintenance & Remaining Useful Life (Weibull degradation); 3) Thermal Trend Forecasting (Holt's Double Exponential Smoothing); and 4) Multi-Sensor Anomaly Detection (Mahalanobis distance multivariate statistical process control).",
     routeRef: "/intelligence",
   },
   {
@@ -212,6 +212,25 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     answer:
       "The Forecasting module projects process telemetry 5 to 20 steps into the future using Holt's Linear Exponential Smoothing. It decouples baseline level (alpha) from dynamic velocity trend (beta), dampened by phi, and computes expanding 90% prediction confidence envelopes to alert operators of approaching high/low thermal limits.",
     routeRef: "/intelligence/forecasting",
+  },
+  {
+    id: "intel-anomaly-detection",
+    category: "intelligence",
+    title: "Multi-Sensor Anomaly Detection",
+    keywords: [
+      "anomaly detection",
+      "multivariate",
+      "mahalanobis",
+      "multi-sensor",
+      "correlation",
+      "covariance",
+      "joint deviation",
+      "unsupervised",
+      "cross-sensor anomaly",
+    ],
+    answer:
+      "The Multi-Sensor Anomaly Detection module (MOD-04) performs unsupervised multivariate anomaly detection using rolling Mahalanobis distance from the expected joint sensor distribution. Unlike the single-sensor MAD/Z-Score fault detector (MOD-01), it identifies abnormal relationships between correlated process sensors — catching faults where no single sensor crosses its own threshold but the combination of readings is physically implausible. It monitors temperature, pressure, flow, level, and vibration simultaneously.",
+    routeRef: "/intelligence/anomaly-detection",
   },
 
   // --- PROJECTS & CASE STUDIES ---

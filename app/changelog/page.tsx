@@ -110,6 +110,85 @@ export default function ChangelogPage() {
               </ul>
             </div>
           </article>
+
+          {/* Entry: Multi-Sensor Anomaly Detection */}
+          <article className="rounded border border-line bg-panel p-6 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-soft pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded border border-amber/40 bg-amber/10 px-2 py-0.5 font-mono text-xs font-semibold text-amber">
+                    FEATURE // MOD-04
+                  </span>
+                  <span className="font-mono text-xs text-text-faint">
+                    2026-09-22
+                  </span>
+                </div>
+                <h2 className="mt-2 font-heading text-xl font-semibold text-text">
+                  Multi-Sensor Anomaly Detection (Mahalanobis Distance)
+                </h2>
+              </div>
+              <Link
+                href="/intelligence/anomaly-detection"
+                className="font-mono text-xs text-amber hover:underline flex items-center gap-1"
+              >
+                <span>OPEN DETECTOR</span>
+                <span>⟶</span>
+              </Link>
+            </div>
+
+            {/* Section 1: What was built */}
+            <div>
+              <h3 className="font-heading text-sm font-semibold text-amber uppercase tracking-wider mb-2">
+                1. What Was Built
+              </h3>
+              <p className="font-sans text-sm text-text-dim leading-relaxed">
+                Unsupervised multivariate anomaly detection module at{" "}
+                <Link href="/intelligence/anomaly-detection" className="text-text hover:text-amber underline">
+                  /intelligence/anomaly-detection
+                </Link>{" "}
+                using Mahalanobis distance from a training-window covariance baseline across 5 correlated 
+                process sensors (temperature, pressure, flow, level, vibration). Includes 5 selectable 
+                test scenarios: nominal baseline, pressure-flow relationship violation, vibration fault with 
+                normal temperature, gradual relationship drift, and the critical simultaneous moderate 
+                deviations scenario where no single sensor crosses its own threshold but the joint deviation 
+                is statistically significant. Multi-panel synchronized chart with crimson anomaly highlighting 
+                across all sensor panels simultaneously.
+              </p>
+            </div>
+
+            {/* Section 2: What was difficult */}
+            <div>
+              <h3 className="font-heading text-sm font-semibold text-amber uppercase tracking-wider mb-2">
+                2. What Was Difficult
+              </h3>
+              <p className="font-sans text-sm text-text-dim leading-relaxed">
+                The central challenge was calibrating the synthetic anomaly magnitudes for Scenario 4 
+                (simultaneous moderate deviations) to sit in the narrow band where each sensor stays below 
+                its individual 2-sigma threshold (~1.3-1.5 sigma per sensor) while the joint Mahalanobis 
+                distance clearly crosses the multivariate threshold. Too large and single-sensor detectors 
+                would catch it anyway; too small and even the multivariate detector misses it. The Cholesky 
+                decomposition for covariance matrix inversion required careful regularization (diagonal + 1e-6) 
+                to handle near-singular matrices when sensor correlations are very strong.
+              </p>
+            </div>
+
+            {/* Section 3: What would be changed next time */}
+            <div>
+              <h3 className="font-heading text-sm font-semibold text-amber uppercase tracking-wider mb-2">
+                3. What Would Be Changed Next Time
+              </h3>
+              <p className="font-sans text-sm text-text-dim leading-relaxed">
+                Rolling Mahalanobis distance was sufficient for all four anomaly patterns, including gradual 
+                drift (detected within the drift window, not only after extreme deviation). The main limitation 
+                is the fixed training window (first 30% of data) — a true rolling/adaptive baseline would 
+                handle concept drift in long-running processes better. Isolation Forest would add value for 
+                high-dimensional sensor arrays (20+ sensors) where covariance estimation becomes unreliable, 
+                but for 5 correlated sensors the statistical approach is both more transparent and more 
+                computationally efficient. A natural next step would be adding a rolling correlation matrix 
+                heatmap visualization showing how sensor-pair correlations shift during anomalous periods.
+              </p>
+            </div>
+          </article>
         </div>
       </main>
 
