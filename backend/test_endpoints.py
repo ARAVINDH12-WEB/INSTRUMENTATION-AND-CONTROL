@@ -69,8 +69,74 @@ def run_tests():
     assert len(data_f["upper_bound"]) == 10
     assert data_f["forecast"][0] > temp_hist[-1]  # positive trend continuation
 
+    # 5. Energy Consumption Forecasting (Multi-Method Benchmark)
+    res_energy = client.post("/api/forecast/energy", json={
+        "horizon_steps": 24,
+        "baseline_kw": 450.0,
+        "noise_std": 6.0,
+    })
+    assert res_energy.status_code == 200
+    data_e = res_energy.json()
+    print("\n[5] Energy Forecast Test -> Horizon:", data_e["horizon_steps"], "Best Method:", data_e["best_method"])
+    print("    History Points:", len(data_e["history"]), "Actual Test Points:", len(data_e["actual_test"]))
+    assert len(data_e["actual_test"]) == 24
+    assert len(data_e["methods"]) == 4
+
+    # Extract metrics per method
+    metrics_by_key = {m["key"]: m for m in data_e["methods"]}
+    m_hw = metrics_by_key["holt_winters"]
+    m_sn = metrics_by_key["seasonal_naive"]
+    m_hl = metrics_by_key["holt_linear"]
+    m_nv = metrics_by_key["naive"]
+
+    print(f"    1. Naive:          MAE={m_nv['mae']:<6} RMSE={m_nv['rmse']:<6} MAPE={m_nv['mape']}%")
+    print(f"    2. Holt Linear:    MAE={m_hl['mae']:<6} RMSE={m_hl['rmse']:<6} MAPE={m_hl['mape']}%")
+    print(f"    3. Seasonal-Naive: MAE={m_sn['mae']:<6} RMSE={m_sn['rmse']:<6} MAPE={m_sn['mape']}%")
+    print(f"    4. Holt-Winters:   MAE={m_hw['mae']:<6} RMSE={m_hw['rmse']:<6} MAPE={m_hw['mape']}%")
+
+    # Assertions required by user specification:
+    # 1. Holt-Winters actually outperforms naive and seasonal-naive (lower MAPE)
+    # 2. Seasonal-naive beats plain naive
+    assert m_sn["mape"] < m_nv["mape"], f"Seasonal Naive ({m_sn['mape']}%) must beat Naive ({m_nv['mape']}%)"
+    assert m_hw["mape"] < m_sn["mape"], f"Holt-Winters ({m_hw['mape']}%) must beat Seasonal Naive ({m_sn['mape']}%)"
+    assert m_hw["mape"] < m_nv["mape"], f"Holt-Winters ({m_hw['mape']}%) must beat Naive ({m_nv['mape']}%)"
+
+    # 6. Multi-Class Sensor Fault Classification & Confusion Matrix Benchmark
+    res_bench = client.post("/api/predict/fault/benchmark?seed=42&count_per_class=50")
+    assert res_bench.status_code == 200
+    data_b = res_bench.json()
+    print("\n[6] Fault Classification Benchmark -> Overall Accuracy:", data_b["overall_accuracy"], "%")
+    print("    Classes:", data_b["classes"])
+    assert data_b["overall_accuracy"] >= 90.0
+    assert len(data_b["classes"]) == 6
+
+    # Verify confusion matrix
+    cm = data_b["confusion_matrix"]
+    pcm = data_b["per_class_metrics"]
+    print("\n    Confusion Matrix (Actual Rows vs Predicted Cols):")
+    header = f"    {'Actual \\ Pred':<14} | " + " | ".join(f"{c:<7}" for c in data_b["classes"])
+    print(header)
+    print("    " + "-" * 65)
+    for act in data_b["classes"]:
+        row_str = f"    {act:<14} | " + " | ".join(f"{cm[act][p]:<7}" for p in data_b["classes"])
+        print(row_str)
+
+    print("\n    Per-Class Precision / Recall / F1:")
+    print(f"    {'Class':<12} | {'Precision':<10} | {'Recall':<10} | {'F1-Score':<10} | {'Support':<8}")
+    print("    " + "-" * 55)
+    for c in data_b["classes"]:
+        m = pcm[c]
+        print(f"    {c:<12} | {m['precision']:>8.2f}% | {m['recall']:>8.2f}% | {m['f1_score']:>8.2f}% | {m['support']:>8}")
+
+    # Check STUCK vs DROPOUT disambiguation
+    print("\n    STUCK vs DROPOUT Cross-Confusion Check:")
+    print("    - Actual STUCK predicted as DROPOUT:", cm["STUCK"]["DROPOUT"])
+    print("    - Actual DROPOUT predicted as STUCK:", cm["DROPOUT"]["STUCK"])
+    assert cm["STUCK"]["DROPOUT"] == 0, "STUCK should not be confused with DROPOUT when non-zero"
+    assert cm["DROPOUT"]["STUCK"] == 0, "DROPOUT should not be confused with STUCK when zero-rail"
+
     print("\n==================================================")
-    print("ALL STAGE 3a ENDPOINTS VERIFIED SUCCESSFULLY!")
+    print("ALL STAGE 3a + FAULT CLASSIFIER ENDPOINTS VERIFIED!")
     print("==================================================")
 
 if __name__ == "__main__":

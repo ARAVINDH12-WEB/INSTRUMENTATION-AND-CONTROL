@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import IntelligenceDisclaimer from "@/components/IntelligenceDisclaimer";
+import InstrumentPanel from "@/components/pid-lab/InstrumentPanel";
 
 interface ForecastResult {
   forecast: number[];
@@ -137,8 +138,8 @@ export default function ForecastingPage() {
     ctx.resetTransform();
     ctx.scale(dpr, dpr);
 
-    // Background
-    ctx.fillStyle = "#18150F";
+    // CRT Phosphor Background
+    ctx.fillStyle = "#090E0C";
     ctx.fillRect(0, 0, width, height);
 
     const padL = 52;
@@ -163,10 +164,10 @@ export default function ForecastingPage() {
     const toX = (idx: number) => padL + (idx / (totalPoints - 1)) * plotW;
     const toY = (val: number) => padT + plotH - ((val - minY) / rangeY) * plotH;
 
-    // Horizontal Grid Ticks
-    ctx.strokeStyle = "#221E17";
+    // CRT Graticule Grid Ticks
+    ctx.strokeStyle = "rgba(79, 169, 138, 0.12)";
     ctx.lineWidth = 1;
-    ctx.fillStyle = "#6B6255";
+    ctx.fillStyle = "rgba(79, 169, 138, 0.65)";
     ctx.font = "10px IBM Plex Mono, monospace";
     ctx.textAlign = "right";
 
@@ -214,9 +215,9 @@ export default function ForecastingPage() {
     ctx.closePath();
     ctx.fill();
 
-    // 2. Historical Trace (Continuous Verdigris/Teal Signal)
-    ctx.strokeStyle = "#4FA98A";
-    ctx.lineWidth = 2.5;
+    // 2. Historical Trace - Pass 1: Phosphor Halo
+    ctx.strokeStyle = "rgba(79, 169, 138, 0.25)";
+    ctx.lineWidth = 6.0;
     ctx.beginPath();
     hist.forEach((val, i) => {
       const x = toX(i);
@@ -224,6 +225,11 @@ export default function ForecastingPage() {
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
+    ctx.stroke();
+
+    // 2. Historical Trace - Pass 2: Focused Beam
+    ctx.strokeStyle = "#4FA98A";
+    ctx.lineWidth = 2.2;
     ctx.stroke();
 
     // Historical Points
@@ -234,15 +240,20 @@ export default function ForecastingPage() {
       ctx.fill();
     });
 
-    // 3. Forecast Trace (Dashed Phosphor Amber)
-    ctx.strokeStyle = "#FFB000";
-    ctx.lineWidth = 2.5;
+    // 3. Forecast Trace - Pass 1: Amber Phosphor Halo
+    ctx.strokeStyle = "rgba(255, 176, 0, 0.25)";
+    ctx.lineWidth = 6.0;
     ctx.setLineDash([5, 4]);
     ctx.beginPath();
     ctx.moveTo(splitX, toY(hist[hist.length - 1]));
     fc.forEach((val, i) => {
       ctx.lineTo(toX(hist.length + i), toY(val));
     });
+    ctx.stroke();
+
+    // 3. Forecast Trace - Pass 2: Focused Amber Beam
+    ctx.strokeStyle = "#FFB000";
+    ctx.lineWidth = 2.2;
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -264,20 +275,21 @@ export default function ForecastingPage() {
       <SiteHeader />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <header className="mb-6 max-w-3xl">
-          <div className="flex items-center gap-2 font-mono text-xs text-cf-amber tracking-widest uppercase mb-2">
-            <span>INTELLIGENCE // MOD-03</span>
-            <span>·</span>
-            <span>TIME-SERIES FORECASTING</span>
-          </div>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight text-cf-text mb-3">
-            Process Variable Trend Forecasting
-          </h1>
-          <p className="text-cf-text-dim text-sm md:text-base leading-relaxed">
-            Double Exponential Smoothing (Holt-Linear) projection of future thermal behavior with 90% confidence 
-            prediction envelopes, enabling feedforward action before threshold alarm breaches.
-          </p>
-        </header>
+        <InstrumentPanel className="flex flex-col gap-6">
+          <header className="mb-2 max-w-3xl">
+            <div className="flex items-center gap-2 font-mono text-xs text-amber tracking-widest uppercase mb-2">
+              <span>INTELLIGENCE // MOD-03</span>
+              <span>·</span>
+              <span>TIME-SERIES FORECASTING</span>
+            </div>
+            <h1 className="font-panel-heading text-3xl font-bold tracking-tight text-text mb-3">
+              Process Variable Trend Forecasting
+            </h1>
+            <p className="font-panel-body text-sm md:text-base text-text-dim leading-relaxed">
+              Double Exponential Smoothing (Holt-Linear) projection of future thermal behavior with 90% confidence 
+              prediction envelopes, enabling feedforward action before threshold alarm breaches.
+            </p>
+          </header>
 
         <IntelligenceDisclaimer />
 
@@ -416,8 +428,26 @@ export default function ForecastingPage() {
                 </div>
               </div>
 
-              <div className="w-full h-80 relative rounded border border-cf-line overflow-hidden">
-                <canvas ref={canvasRef} className="w-full h-full block" />
+              <div className="w-full h-80 relative rounded-lg border-2 border-[#2E3B33] bg-[#090E0C] overflow-hidden shadow-[inset_0_2px_12px_rgba(0,0,0,0.85)]">
+                {/* CRT Reticle & scanline overlay */}
+                <div
+                  className="absolute inset-0 pointer-events-none z-10 opacity-30"
+                  style={{
+                    backgroundImage: "linear-gradient(rgba(18, 24, 20, 0) 50%, rgba(0, 0, 0, 0.6) 50%)",
+                    backgroundSize: "100% 4px",
+                  }}
+                />
+                <div
+                  className="absolute inset-0 pointer-events-none z-10"
+                  style={{
+                    background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 65%, rgba(0,0,0,0.65) 100%)",
+                  }}
+                />
+                <div className="absolute top-2.5 right-3 z-20 flex items-center gap-1.5 font-mono text-[9px] text-verdigris/80 tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-verdigris animate-pulse shadow-[0_0_6px_#4FA98A]" />
+                  <span>OSC // TREND RECORDER</span>
+                </div>
+                <canvas ref={canvasRef} className="w-full h-full block relative z-0" />
               </div>
 
               <div className="flex justify-between items-center text-[11px] font-mono text-cf-text-faint mt-3">
@@ -464,6 +494,7 @@ export default function ForecastingPage() {
             </div>
           </div>
         </div>
+        </InstrumentPanel>
       </main>
 
       <SiteFooter subtitle="FORECASTING ENGINE // EXPONENTIAL SMOOTHING" />

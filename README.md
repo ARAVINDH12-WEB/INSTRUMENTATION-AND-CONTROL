@@ -105,3 +105,54 @@ curl -X POST http://127.0.0.1:8000/api/forecast/temperature \
   -H "Content-Type: application/json" \
   -d '{"historical_temperatures": [65.2, 65.8, 66.1, 66.5, 67.0], "horizon_steps": 10}'
 ```
+
+---
+
+## Automated CI/CD Quality Gates
+
+ControlForge enforces automated validation via GitHub Actions on every push and pull request targeting `main`.
+
+### 1. Workflows Overview
+
+| Workflow | Path | Target Scope | Key Verification Steps |
+| :--- | :--- | :--- | :--- |
+| **Frontend CI** | `.github/workflows/frontend.yml` | Next.js app, simulators, calculators | `npm ci`, `npm run typecheck`, `npm run build`, `npm run test:frontend` |
+| **Backend CI** | `.github/workflows/backend.yml` | FastAPI analytics & ML service | `pip install`, `pytest backend/test_endpoints.py -v` |
+
+### 2. Running Local Quality Gates
+
+Run the exact test suites executed by CI before opening a pull request:
+
+```bash
+# 1. Typecheck the entire TypeScript codebase:
+npm run typecheck
+
+# 2. Run the frontend math regression, cascade, and KB test suites:
+npm run test:frontend
+
+# 3. Validate static site generation across all 33 routes:
+npm run build
+
+# 4. In a Python environment, run the backend endpoint test suite:
+cd backend
+pytest test_endpoints.py -v
+```
+
+### 3. Branch Protection Setup (GitHub Repository Settings)
+
+To guarantee that code cannot merge into `main` without passing these automated gates, configure branch protection in GitHub:
+
+1. In GitHub, navigate to **Settings** → **Branches**.
+2. Under **Branch protection rules**, click **Add branch ruleset** or **Add rule**.
+3. Set **Branch name pattern** to `main`.
+4. Enable the following settings:
+   - **Require a pull request before merging** (Require approvals: 1).
+   - **Require status checks to pass before merging**:
+     - Check **Require branches to be up to date before merging**.
+     - In the status checks search box, select:
+       - `Frontend Build & Math Regression Gate` (from `Frontend CI`)
+       - `Backend API & ML Prediction Tests` (from `Backend CI`)
+   - **Require conversation resolution before merging**.
+   - **Do not allow bypassing the above settings** (enforces checks for administrators).
+5. Click **Save changes**. Merge commits and direct pushes to `main` without passing CI will now be blocked automatically.
+

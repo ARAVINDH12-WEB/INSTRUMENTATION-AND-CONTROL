@@ -74,3 +74,55 @@ Always respect `prefers-reduced-motion: reduce` — set all animations/transitio
 - [ ] Is mono reserved for data/tags, serif for long reading, sans for short UI copy?
 - [ ] If this is not the Home page, does motion only happen in response to user action?
 - [ ] Border radius small (2–5px), hairline grid borders instead of individual card shadows?
+
+## Instrument-panel extension (Site-Wide Interactive-Page Standard)
+
+The instrument-panel interaction language is the **site-wide standard for all interactive engineering and analytics pages**:
+1. **Calculators** (`/calculators` and all sub-pages)
+2. **Dashboard** (`/dashboard`)
+3. **PID Lab** (`/pid-lab` and all simulator sub-pages)
+4. **Intelligence Suite** (`/intelligence` and all 5 statistical/ML modules)
+
+### Component Reuse Architecture:
+- **Chassis & Panel Container (`InstrumentPanel`)**:
+  - Procedural brushed-metal noise texture overlay (SVG `feTurbulence`, ~5% opacity, overlay blend mode)
+  - Off-center radial warm-light illumination and deep inset vignette
+  - Brass corner rivet details (`radial-gradient` circles, ~6px) on chassis bezels
+  - Subtle interactive 3D parallax tilt (max ±3.5deg) with smooth spring return
+  - **MANDATORY**: `prefers-reduced-motion: reduce` unconditionally suppresses 3D parallax tilts and transitions across all wrapped pages.
+- **Typography Standard**:
+  - Headings: `'Bricolage Grotesque'` (weights 500–800)
+  - Body/UI copy: `'Hanken Grotesk'`
+  - Numerical data, tags, formulas, and readouts: Strictly `'IBM Plex Mono'` unchanged
+- **Actuators (`RotaryKnob`)**:
+  - Tactile physical rotary dial with drag-to-turn mechanics
+  - Click-to-type precision override on *every* knob (clicking the numeric readout enters direct editing mode)
+  - Used for exploratory tuning parameters (PID gains, noise) and threshold gates (Z-Score threshold, Mahalanobis sensitivity)
+  - **Precision Input Exception**: In Calculators (`/calculators/*`), numeric inputs stay as editable text fields (`<input type="number">`) where exact numerical precision is primary; do NOT force calculator inputs into knobs.
+- **Visual Readouts (`OscilloscopeReadout`)**:
+  - Recessed CRT monitor bezel with scanlines overlay and vignette
+  - Glowing phosphor illumination in amber (`#FFB000`), verdigris (`#4FA98A`), or crimson (`#D64550`)
+  - Used for prominent numeric readouts (loop current, RUL, PID gains, SIL PFDavg) without requiring a full chart canvas.
+- **Oscilloscope Waveform Display**:
+  - Deep phosphor screen background (`#090E0C`)
+  - CRT reticle graticule with major divisions and sub-ticks (`rgba(79, 169, 138, 0.12)`)
+  - Dual-pass electron beam drawing (Pass 1 wide soft phosphor halo, Pass 2 sharp electron beam)
+  - CRT scanlines and subtle radial vignette overlays with illuminated status LED.
+- **Hardware Patch Jacks (`PatchCableSelector` / Mode Selector)**:
+  - 1/4" knurled hex nuts, socket contact pins, and active LED signal rings for routing matrices and discrete mode switching.
+
+Secondary accent colors (used per-simulator / module, not decoratively elsewhere):
+```css
+--ember:  #FF6B4A;       /* Temperature simulator & thermal accent */
+--steel:  #5B9BD5;       /* DC Motor & electromechanical accent */
+--violet: #9D7FE8;       /* Second-Order resonance & noise accent */
+```
+
+### Intentional Exceptions (DO NOT apply instrument-panel language):
+The following 4 areas are **deliberate design exceptions** with established identities that must remain untouched:
+1. **Projects** (`/projects/*`): Reading-focused case studies; calm editorial layout.
+2. **Notes** (`/notes/*`): Long-form engineering articles; serif reading typography (`IBM Plex Serif`).
+3. **P&ID Trainer** (`/pid-trainer`): Dedicated drag-and-drop workspace interaction model with its own tactile canvas metaphor.
+4. **The Panel (Home)** (`/`): Bespoke physical console landing page with its own established interaction language.
+
+

@@ -79,6 +79,34 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
       "Resistance Temperature Detectors (RTDs, typically Pt100) measure resistance changes in high-purity platinum wire according to the Callendar-Van Dusen equation (100 Ω at 0°C), providing high accuracy (±0.15°C) from -200°C to 600°C. Thermocouples generate a microvolt Seebeck potential between dissimilar metals (e.g., Type K Chromel-Alumel), offering ruggedness and extreme range (-200°C to 1370°C+).",
     routeRef: "/notes",
   },
+  {
+    id: "notes-safety-instrumented-systems",
+    category: "notes",
+    title: "Safety Instrumented Systems (SIS) & SIL Concepts",
+    keywords: [
+      "safety instrumented system",
+      "sis",
+      "sil",
+      "safety integrity level",
+      "bpcs",
+      "basic process control system",
+      "difference between sis and bpcs",
+      "pfd",
+      "pfdavg",
+      "proof test",
+      "proof-test interval",
+      "dangerous failure rate",
+      "lambda d",
+      "iec 61508",
+      "iec 61511",
+      "low demand",
+      "risk reduction factor",
+      "rrf",
+    ],
+    answer:
+      "A Safety Instrumented System (SIS) is dedicated to detecting dangerous conditions and taking the process to a safe state (e.g. emergency shutdown). It differs fundamentally from the Basic Process Control System (BPCS): BPCS actively regulates process variables (flow, level, pressure) within normal operating bounds, whereas SIS sits dormant until an abnormal hazard exceeds protective thresholds. SIS does not replace or tune BPCS. Safety Integrity Levels (SIL 1–4) define required risk reduction in low-demand mode (SIL 1: PFDavg 10⁻²–10⁻¹, SIL 2: 10⁻³–10⁻², SIL 3: 10⁻⁴–10⁻³, SIL 4: 10⁻⁵–10⁻⁴). The low-demand single-channel approximation is PFDavg ≈ (λ_D × T) / 2.",
+    routeRef: "/notes/safety-instrumented-systems",
+  },
 
   // --- CALCULATORS ---
   {
@@ -87,7 +115,7 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     title: "Engineering Calculators Suite",
     keywords: ["calculators", "engineering tools", "converter", "what calculators are available"],
     answer:
-      "ControlForge features 5 precision metrology calculators: 1) 4–20 mA Process Signal Converter (linear & square-root flow scaling); 2) Orifice Plate Differential Flow Calculator; 3) Ziegler-Nichols Closed-Loop PID Tuning Calculator; 4) RTD Pt100 Resistance-to-Temperature Tool; and 5) Thermocouple Type K/J/T mV-to-Temperature Converter.",
+      "ControlForge features 6 precision metrology and functional safety calculators: 1) 4–20 mA Process Signal Converter (linear & square-root flow scaling); 2) Orifice Plate Differential Flow Calculator; 3) Ziegler-Nichols Closed-Loop PID Tuning Calculator; 4) RTD Pt100 Resistance-to-Temperature Tool; 5) Thermocouple Type K/J/T mV-to-Temperature Converter; and 6) SIL PFDavg & Risk Reduction Factor Calculator (IEC 61508 / 61511).",
     routeRef: "/calculators",
   },
   {
@@ -127,6 +155,31 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
       "The PID Tuning Calculator applies the classical Ziegler-Nichols frequency response method. By inputting the ultimate gain (Ku) and ultimate oscillation period (Pu) observed at the verge of continuous cycling, it calculates optimal parameters for P, PI, and PID controllers (Classic, Pessen Integral, and Some Overshoot rules).",
     routeRef: "/calculators/pid-tuning",
   },
+  {
+    id: "calc-sil-pfd",
+    category: "calculators",
+    title: "SIL PFDavg & Risk Reduction Factor Calculator",
+    keywords: [
+      "sil calculator",
+      "pfd calculator",
+      "pfdavg",
+      "risk reduction factor",
+      "rrf",
+      "dangerous failure rate",
+      "lambda d",
+      "proof test interval",
+      "low demand",
+      "sil 1",
+      "sil 2",
+      "sil 3",
+      "sil 4",
+      "iec 61508",
+      "iec 61511",
+    ],
+    answer:
+      "The SIL PFDavg Calculator computes average Probability of Failure on Demand using the simplified low-demand 1oo1 approximation: PFDavg ≈ (λ_D × T) / 2 and RRF = 1 / PFDavg. It accepts failure rate in h⁻¹, FIT, or yr⁻¹, and proof-test interval in years, months, or hours. It features live worked-step derivations, edge-case guards (T ≤ 0, λ_D < 0, non-physical PFD > 1.0), and active IEC 61508 / 61511 SIL 1–4 band highlighting.",
+    routeRef: "/calculators/sil-pfd",
+  },
 
   // --- PID LAB ---
   {
@@ -146,6 +199,31 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     answer:
       "The Tank Level simulator models fluid height governed by Torricelli's law: dh/dt = (Qin - C_out * √h) / A. Users adjust Kp, Ki, Kd, setpoint, and valve slew limits. A recommended 'well-tuned' preset is Kp = 2.10, Ki = 0.35 s⁻¹, Kd = 0.10 s, which settles cleanly with under 3% overshoot.",
     routeRef: "/pid-lab/tank-level",
+  },
+  {
+    id: "pid-compare-controllers",
+    category: "pid-lab",
+    title: "Compare Two Controllers View (PID Lab)",
+    keywords: [
+      "compare two controllers",
+      "controller a vs b",
+      "compare controllers",
+      "dual controller",
+      "dual trace",
+      "compare pid",
+      "controller a",
+      "controller b",
+      "verdigris trace",
+      "iae ise itae comparison",
+      "steady state offset",
+      "p only vs pi",
+      "effect of kd",
+      "aggressive vs conservative",
+      "effect of ki",
+    ],
+    answer:
+      "The 'Compare two controllers' view in the PID Lab (/pid-lab) enables side-by-side benchmarking of two independent parameter sets (Controller A in amber, Controller B in verdigris) evaluated across the exact same discrete tank process model and disturbance conditions. It features independent Kp, Ki, Kd, and SP sliders, per-trace show/hide toggles, curated teaching preset pairs ('Steady-State Offset: P-only vs PI', 'Aggressive vs Conservative', 'Effect of Ki: Damped vs Ringing', and 'Kd on Lag-Free Plant: Teaching Case'), and an automated comparison table highlighting the superior controller across Overshoot, Rise Time, Settling Time, IAE, ISE, and ITAE.",
+    routeRef: "/pid-lab",
   },
   {
     id: "pid-cascade-simulator",
@@ -231,6 +309,27 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     answer:
       "The Multi-Sensor Anomaly Detection module (MOD-04) performs unsupervised multivariate anomaly detection using rolling Mahalanobis distance from the expected joint sensor distribution. Unlike the single-sensor MAD/Z-Score fault detector (MOD-01), it identifies abnormal relationships between correlated process sensors — catching faults where no single sensor crosses its own threshold but the combination of readings is physically implausible. It monitors temperature, pressure, flow, level, and vibration simultaneously.",
     routeRef: "/intelligence/anomaly-detection",
+  },
+  {
+    id: "intel-energy-forecasting",
+    category: "intelligence",
+    title: "Industrial Energy-Consumption Forecasting & Seasonality",
+    keywords: [
+      "energy forecasting",
+      "power consumption",
+      "holt-winters",
+      "seasonality",
+      "load profile",
+      "diurnal",
+      "seasonal naive",
+      "energy demand",
+      "triple exponential smoothing",
+      "kilowatt",
+      "mod-05",
+    ],
+    answer:
+      "The Industrial Energy Forecasting module (MOD-05 at /intelligence/energy-forecasting) evaluates multi-step plant electrical demand curves. Unlike non-seasonal trend forecasters, it addresses 24-hour diurnal operational peaks and weekend curtailment. It benchmarks four distinct methods against held-out ground truth data: Naive (last-value), Seasonal-Naive (24h lookback), Holt's Linear (trend-only), and Holt-Winters Triple Exponential Smoothing. Holt-Winters consistently achieves the lowest MAPE (~1.3% vs ~1.8% for seasonal-naive and >17% for non-seasonal baselines) by filtering measurement noise across multiple seasonal cycles.",
+    routeRef: "/intelligence/energy-forecasting",
   },
 
   // --- PROJECTS & CASE STUDIES ---

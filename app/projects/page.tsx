@@ -20,6 +20,7 @@ interface CaseStudy {
   strategy: string;
   results: string[];
   lessons: string;
+  link?: string;
 }
 
 export default function ProjectsPage() {
@@ -231,6 +232,42 @@ export default function ProjectsPage() {
       lessons:
         "Pure data-driven LSTMs occasionally output physically impossible negative temperatures during feed step disruptions. Enforcing thermodynamic conservation constraints directly into the loss function solved extrapolation instability.",
     },
+    {
+      id: "cs-7",
+      tag: "TAG: LIC/FIC-301",
+      category: "CAPSTONE · DISTURBANCE REJECTION",
+      title: "Robustness & Disturbance-Rejection Capstone",
+      ref: "CF-PRJ-007",
+      link: "/projects/disturbance-rejection-capstone",
+      overview:
+        "Rigorous comparative benchmark of Single-Loop PID, Cascade, and Feedforward architectures subjected to nominal outflow steps, inner-loop flow sensor noise, and feedforward model mismatch.",
+      metadata: [
+        { label: "ARCHITECTURES", value: "Single-Loop vs Cascade vs FF" },
+        { label: "DISTURBANCE STEP", value: "+15 L/min (+75% Outflow)" },
+        { label: "TIME-SCALE RATIO", value: "5:1 (Outer/Inner)" },
+        { label: "STATUS", value: "BENCHMARKED", status: true },
+      ],
+      problem:
+        "Large step outflow demand increases in surge tanks cause deep level slumps (7.8%) under single-loop feedback due to hydraulic capacitance lag. This capstone stress-tests cascade and feedforward under ideal vs real-world noisy conditions.",
+      process:
+        "Atmospheric cylindrical surge tank (A = 4.0 m², nominal level 50%) receiving flow modulated by equal-percentage globe valve LV-301 (τ = 1.2s), discharging to downstream batch extraction.",
+      specs: [
+        { device: "Level Transmitter", tag: "LT-301", model: "Guided Wave Radar (0–100%)", signal: "4–20 mA HART" },
+        { device: "Inflow Transmitter", tag: "FT-301", model: "Electromagnetic (0–100 L/min)", signal: "4–20 mA (100ms)" },
+        { device: "Disturbance Meter", tag: "FT-302", model: "Coriolis Mass Flowmeter", signal: "PROFINET IRT" },
+      ],
+      model: "A · dh/dt = Qin(t) - Qout(t)  |  τ_flow · dQin/dt + Qin = u_valve(t)  |  u_valve ∈ [0, 100%]",
+      strategy:
+        "Master LIC-301 (Kp=1.8, Ki=0.25, Kd=0.4, Ts=0.5s) driving slave FIC-301 (Kp=3.0, Ki=3.0, Ts=0.1s) with feedforward summation Kff · ΔQout. Compared against confirmed-fair single-loop baseline.",
+      results: [
+        "Nominal: FF reduces max level deviation from 7.78% to 0.83% (-89.3%) and IAE by 95.0%.",
+        "Sensor Noise (±2.0 L/min): Cascade valve travel explodes by 28.5x (2935% vs 25.7% in single-loop).",
+        "Actuator wear proves Single-Loop PID is vastly superior in noisy environments without heavy filtering.",
+        "Feedforward mistuning (±40% gain) increases IAE 8x but still outperforms feedback-only cascade.",
+      ],
+      lessons:
+        "Cascade does not win on every metric: inner-loop noise induces massive valve chatter. Inner loops must have analog low-pass filtering. Under-compensated feedforward (Kff=0.7) is safer than over-compensating.",
+    },
   ];
 
   return (
@@ -242,7 +279,7 @@ export default function ProjectsPage() {
           <div className="mb-2 flex items-center gap-2 font-mono text-xs tracking-wider text-amber">
             <span>ARCHIVE // CASE STUDIES</span>
             <span>·</span>
-            <span>6 VALIDATED ENGINEERING BLUEPRINTS</span>
+            <span>7 VALIDATED ENGINEERING BLUEPRINTS</span>
           </div>
           <h1 className="font-heading text-3xl font-bold tracking-tight text-text">
             Control Systems Engineering Projects
@@ -375,8 +412,11 @@ export default function ProjectsPage() {
                 )}
 
                 <div className="mt-auto flex items-center justify-between border-t border-line-soft pt-3 font-mono text-xs">
-                  <Link href="/pid-lab" className="text-amber hover:text-text transition-colors font-semibold">
-                    OPEN IN PID LAB ⟶
+                  <Link
+                    href={cs.link ?? "/pid-lab"}
+                    className="text-amber hover:text-text transition-colors font-semibold"
+                  >
+                    {cs.link ? "VIEW FULL CASE STUDY ⟶" : "OPEN IN PID LAB ⟶"}
                   </Link>
                   <span className="text-text-faint">{cs.ref}</span>
                 </div>

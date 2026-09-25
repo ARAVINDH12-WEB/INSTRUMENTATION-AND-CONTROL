@@ -27,6 +27,18 @@ const config: Config = {
           DEFAULT: "#4FA98A",
           muted: "rgba(79, 169, 138, 0.15)",
         },
+        ember: {
+          DEFAULT: "#FF6B4A",
+          glow: "rgba(255, 107, 74, 0.35)",
+        },
+        steel: {
+          DEFAULT: "#5B9BD5",
+          glow: "rgba(91, 155, 213, 0.35)",
+        },
+        violet: {
+          DEFAULT: "#9D7FE8",
+          glow: "rgba(157, 127, 232, 0.35)",
+        },
         text: {
           DEFAULT: "#EDE6DA",
           dim: "#A79C8A",
@@ -38,6 +50,8 @@ const config: Config = {
         mono: ["var(--font-mono)", "IBM Plex Mono", "monospace"],
         serif: ["var(--font-serif)", "IBM Plex Serif", "serif"],
         sans: ["var(--font-sans)", "IBM Plex Sans", "sans-serif"],
+        "panel-heading": ["'Bricolage Grotesque'", "Space Grotesk", "sans-serif"],
+        "panel-body": ["'Hanken Grotesk'", "IBM Plex Sans", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "3px",

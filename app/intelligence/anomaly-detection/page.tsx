@@ -4,6 +4,8 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import IntelligenceDisclaimer from "@/components/IntelligenceDisclaimer";
+import InstrumentPanel from "@/components/pid-lab/InstrumentPanel";
+import RotaryKnob from "@/components/ui/RotaryKnob";
 
 // ============================================================================
 // MULTIVARIATE ANOMALY DETECTION KERNEL
@@ -405,8 +407,8 @@ export default function AnomalyDetectionPage() {
       ctx.resetTransform();
       ctx.scale(dpr, dpr);
 
-      // Background
-      ctx.fillStyle = "#18150F";
+      // CRT Phosphor Background
+      ctx.fillStyle = "#090E0C";
       ctx.fillRect(0, 0, w, h);
 
       const padL = 8;
@@ -477,7 +479,8 @@ export default function AnomalyDetectionPage() {
       ctx.resetTransform();
       ctx.scale(dpr, dpr);
 
-      ctx.fillStyle = "#18150F";
+      // CRT Phosphor Background
+      ctx.fillStyle = "#090E0C";
       ctx.fillRect(0, 0, w, h);
 
       const padL = 40;
@@ -566,21 +569,22 @@ export default function AnomalyDetectionPage() {
       <SiteHeader />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <header className="mb-6 max-w-3xl">
-          <div className="flex items-center gap-2 font-mono text-xs text-amber tracking-widest uppercase mb-2">
-            <span>INTELLIGENCE // MOD-04</span>
-            <span>·</span>
-            <span>MULTIVARIATE STATISTICAL PROCESS CONTROL</span>
-          </div>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight text-text mb-3">
-            Multi-Sensor Anomaly Detection
-          </h1>
-          <p className="text-text-dim text-sm md:text-base leading-relaxed">
-            Unsupervised multivariate anomaly detection using rolling Mahalanobis distance 
-            from the expected joint sensor distribution. Identifies abnormal <em>relationships</em> between 
-            correlated process sensors — not just individual outliers.
-          </p>
-        </header>
+        <InstrumentPanel className="flex flex-col gap-6">
+          <header className="mb-2 max-w-3xl">
+            <div className="flex items-center gap-2 font-mono text-xs text-amber tracking-widest uppercase mb-2">
+              <span>INTELLIGENCE // MOD-04</span>
+              <span>·</span>
+              <span>MULTIVARIATE STATISTICAL PROCESS CONTROL</span>
+            </div>
+            <h1 className="font-panel-heading text-3xl font-bold tracking-tight text-text mb-3">
+              Multi-Sensor Anomaly Detection
+            </h1>
+            <p className="font-panel-body text-sm md:text-base text-text-dim leading-relaxed">
+              Unsupervised multivariate anomaly detection using rolling Mahalanobis distance 
+              from the expected joint sensor distribution. Identifies abnormal <em className="text-text">relationships</em> between 
+              correlated process sensors — not just individual outliers.
+            </p>
+          </header>
 
         <IntelligenceDisclaimer />
 
@@ -622,24 +626,26 @@ export default function AnomalyDetectionPage() {
                 ))}
               </div>
 
-              {/* Sensitivity Slider */}
-              <div className="mt-5 pt-4 border-t border-line-soft">
-                <div className="flex justify-between text-xs font-mono mb-1">
-                  <span className="text-text-dim">MAHALANOBIS THRESHOLD:</span>
-                  <span className="text-amber font-bold">{sensitivity.toFixed(1)}</span>
+              {/* Sensitivity Rotary Knob */}
+              <div className="mt-5 pt-4 border-t border-[#302B22] flex flex-col items-center">
+                <div className="w-full flex justify-between text-xs font-mono mb-2">
+                  <span className="text-text-dim">MAHALANOBIS GATE:</span>
+                  <span className="text-amber font-bold font-mono">{sensitivity.toFixed(1)} D</span>
                 </div>
-                <input
-                  type="range"
-                  min="2.0"
-                  max="6.0"
-                  step="0.1"
+                <RotaryKnob
+                  label="Sensitivity Gate"
                   value={sensitivity}
-                  onChange={(e) => setSensitivity(parseFloat(e.target.value))}
-                  className="w-full accent-amber"
+                  min={2.0}
+                  max={6.0}
+                  step={0.1}
+                  unit="D"
+                  accentColor="#FFB000"
+                  size={84}
+                  onChange={setSensitivity}
                 />
-                <div className="flex justify-between text-[10px] font-mono text-text-faint mt-1">
-                  <span>MORE SENSITIVE</span>
-                  <span>LESS SENSITIVE</span>
+                <div className="w-full flex justify-between text-[10px] font-mono text-text-faint mt-2">
+                  <span>More Sensitive (2.0)</span>
+                  <span>Conservative (6.0)</span>
                 </div>
               </div>
             </div>
@@ -764,10 +770,17 @@ export default function AnomalyDetectionPage() {
                          "VIB (mm/s)"}
                       </div>
                     </div>
-                    <div className="flex-1 h-14 rounded border border-line overflow-hidden">
+                    <div className="flex-1 h-14 relative rounded-md border border-[#2E3B33] bg-[#090E0C] overflow-hidden">
+                      <div
+                        className="absolute inset-0 pointer-events-none z-10 opacity-25"
+                        style={{
+                          backgroundImage: "linear-gradient(rgba(18, 24, 20, 0) 50%, rgba(0, 0, 0, 0.6) 50%)",
+                          backgroundSize: "100% 4px",
+                        }}
+                      />
                       <canvas
                         ref={(el) => { canvasRefs.current[idx] = el; }}
-                        className="w-full h-full block"
+                        className="w-full h-full block relative z-0"
                       />
                     </div>
                   </div>
@@ -788,10 +801,17 @@ export default function AnomalyDetectionPage() {
                   </div>
                 </div>
               </div>
-              <div className="w-full h-28 rounded border border-line overflow-hidden">
+              <div className="w-full h-28 relative rounded-md border border-[#2E3B33] bg-[#090E0C] overflow-hidden">
+                <div
+                  className="absolute inset-0 pointer-events-none z-10 opacity-25"
+                  style={{
+                    backgroundImage: "linear-gradient(rgba(18, 24, 20, 0) 50%, rgba(0, 0, 0, 0.6) 50%)",
+                    backgroundSize: "100% 4px",
+                  }}
+                />
                 <canvas
                   ref={mahalCanvasRef}
-                  className="w-full h-full block"
+                  className="w-full h-full block relative z-0"
                 />
               </div>
               <div className="flex justify-between items-center text-[10px] font-mono text-text-faint mt-2">
@@ -822,6 +842,7 @@ export default function AnomalyDetectionPage() {
             </div>
           </div>
         </div>
+        </InstrumentPanel>
       </main>
 
       <SiteFooter subtitle="INTELLIGENCE ENGINE // MULTIVARIATE ANOMALY DETECTION" />

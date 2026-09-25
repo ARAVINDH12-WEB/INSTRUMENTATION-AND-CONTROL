@@ -14,6 +14,12 @@ export interface ProcessCanvasProps {
   glowColor?: string;
   height?: number;
   toleranceBandPct?: number; // e.g. 5 for +/- 5%
+  secondaryData?: number[];
+  secondarySetpoint?: number;
+  secondaryColor?: string;
+  secondaryGlowColor?: string;
+  showPrimary?: boolean;
+  showSecondary?: boolean;
 }
 
 export default function ProcessCanvas({
@@ -28,6 +34,12 @@ export default function ProcessCanvas({
   glowColor = "rgba(255, 176, 0, 0.25)",
   height = 380,
   toleranceBandPct,
+  secondaryData,
+  secondarySetpoint,
+  secondaryColor = "#4FA98A",
+  secondaryGlowColor = "rgba(79, 169, 138, 0.25)",
+  showPrimary = true,
+  showSecondary = true,
 }: ProcessCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -62,9 +74,20 @@ export default function ProcessCanvas({
     const plotW = Math.max(10, width - padL - padR);
     const plotH = Math.max(10, canvasHeight - padT - padB);
 
-    const steps = data.length;
-    const dataMin = Math.min(...data);
-    const dataMax = Math.max(...data);
+    const steps = Math.max(
+      showPrimary && data ? data.length : 0,
+      showSecondary && secondaryData ? secondaryData.length : 0,
+      1
+    );
+
+    const activeVals: number[] = [];
+    if (showPrimary && data) activeVals.push(...data);
+    if (showSecondary && secondaryData) activeVals.push(...secondaryData);
+    if (setpoint !== undefined) activeVals.push(setpoint);
+    if (secondarySetpoint !== undefined) activeVals.push(secondarySetpoint);
+
+    const dataMin = activeVals.length > 0 ? Math.min(...activeVals) : 0;
+    const dataMax = activeVals.length > 0 ? Math.max(...activeVals) : 100;
     const minY = propMinY !== undefined ? propMinY : Math.floor(Math.min(0, dataMin));
     const maxY = propMaxY !== undefined ? propMaxY : Math.ceil(Math.max(10, dataMax * 1.15));
     const rangeY = maxY - minY || 1;
@@ -108,16 +131,22 @@ export default function ProcessCanvas({
       ctx.fillText(`${sec}s`, x, padT + plotH + 8);
     }
 
-    // Optional Tolerance Band around setpoint
-    if (setpoint !== undefined && toleranceBandPct) {
+    // Optional Tolerance Band around primary setpoint
+    if (setpoint !== undefined && toleranceBandPct && showPrimary) {
       const yUp = toY(setpoint * (1 + toleranceBandPct / 100));
       const yDown = toY(setpoint * (1 - toleranceBandPct / 100));
       ctx.fillStyle = "rgba(255, 176, 0, 0.04)";
       ctx.fillRect(padL, Math.min(yUp, yDown), plotW, Math.abs(yDown - yUp));
     }
 
-    // Setpoint Line
-    if (setpoint !== undefined) {
+    // Setpoint Lines
+    const hasDistinctSecondarySp =
+      secondarySetpoint !== undefined &&
+      showSecondary &&
+      secondaryData &&
+      (setpoint === undefined || Math.abs(secondarySetpoint - setpoint) > 0.001);
+
+    if (setpoint !== undefined && (showPrimary || !hasDistinctSecondarySp)) {
       const ySp = toY(setpoint);
       ctx.strokeStyle = "#FFB000";
       ctx.lineWidth = 1.5;
@@ -131,37 +160,103 @@ export default function ProcessCanvas({
       ctx.fillStyle = "#FFB000";
       ctx.font = '11px "IBM Plex Mono", monospace';
       ctx.textAlign = "right";
-      ctx.fillText(`TARGET: ${setpoint.toFixed(1)}${unit}`, padL + plotW, ySp - 10);
+      const spLabel = hasDistinctSecondarySp
+        ? `SP A: ${setpoint.toFixed(1)}${unit}`
+        : secondaryData
+        ? `TARGET: ${setpoint.toFixed(1)}${unit}`
+        : `TARGET: ${setpoint.toFixed(1)}${unit}`;
+      ctx.fillText(spLabel, padL + plotW, ySp - 10);
     }
 
-    // Response Curve
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    data.forEach((val, idx) => {
-      const x = toX(idx);
-      const y = toY(val);
-      if (idx === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+    if (hasDistinctSecondarySp && secondarySetpoint !== undefined) {
+      const ySp2 = toY(secondarySetpoint);
+      ctx.strokeStyle = secondaryColor;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padL, ySp2);
+      ctx.lineTo(padL + plotW, ySp2);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-    // Signal Glow
-    ctx.strokeStyle = glowColor;
-    ctx.lineWidth = 5;
-    ctx.stroke();
+      ctx.fillStyle = secondaryColor;
+      ctx.font = '11px "IBM Plex Mono", monospace';
+      ctx.textAlign = "left";
+      ctx.fillText(`SP B: ${secondarySetpoint.toFixed(1)}${unit}`, padL + 8, ySp2 - 10);
+    }
 
-    // End Point Marker
-    if (steps > 0) {
-      const lastVal = data[steps - 1];
+    // Secondary Response Curve (Verdigris)
+    if (showSecondary && secondaryData && secondaryData.length > 0) {
+      ctx.strokeStyle = secondaryColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      secondaryData.forEach((val, idx) => {
+        const x = toX(idx);
+        const y = toY(val);
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Secondary Signal Glow
+      ctx.strokeStyle = secondaryGlowColor;
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      // Secondary End Point Marker
+      const lastValB = secondaryData[secondaryData.length - 1];
+      ctx.fillStyle = secondaryColor;
+      ctx.beginPath();
+      ctx.arc(toX(secondaryData.length - 1), toY(lastValB), 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Primary Response Curve (Amber)
+    if (showPrimary && data && data.length > 0) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      data.forEach((val, idx) => {
+        const x = toX(idx);
+        const y = toY(val);
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Signal Glow
+      ctx.strokeStyle = glowColor;
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      // End Point Marker
+      const lastValA = data[data.length - 1];
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(toX(steps - 1), toY(lastVal), 4, 0, Math.PI * 2);
+      ctx.arc(toX(data.length - 1), toY(lastValA), 4, 0, Math.PI * 2);
       ctx.fill();
     }
 
     ctx.restore();
-  }, [data, setpoint, propMinY, propMaxY, unit, totalTime, dt, color, glowColor, height, toleranceBandPct]);
+  }, [
+    data,
+    setpoint,
+    propMinY,
+    propMaxY,
+    unit,
+    totalTime,
+    dt,
+    color,
+    glowColor,
+    height,
+    toleranceBandPct,
+    secondaryData,
+    secondarySetpoint,
+    secondaryColor,
+    secondaryGlowColor,
+    showPrimary,
+    showSecondary,
+  ]);
 
   return (
     <div className="relative w-full overflow-hidden rounded border border-line bg-panel-2" style={{ height: `${height}px` }}>

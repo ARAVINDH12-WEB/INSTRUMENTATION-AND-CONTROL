@@ -86,14 +86,14 @@ export function computeMetrics(data: number[], setpoint: number): MetricsResult 
   const riseIdx = data.findIndex((v) => v >= setpoint * 0.9);
   const riseTimeSec = riseIdx >= 0 ? riseIdx * 0.1 : null;
 
-  let settleIdx = data.length - 1;
-  for (let i = data.length - 1; i > 0; i--) {
+  let settleIdx = -1;
+  for (let i = data.length - 1; i >= 0; i--) {
     if (Math.abs(data[i] - setpoint) > setpoint * 0.05) {
       settleIdx = i;
       break;
     }
   }
-  const settlingTimeSec = settleIdx * 0.1;
+  const settlingTimeSec = settleIdx >= 0 ? Number((settleIdx * 0.1).toFixed(1)) : 0;
 
   return { overshootPct, riseTimeSec, settlingTimeSec };
 }
@@ -391,23 +391,105 @@ export function simulateTemperature(
   opts: SimOpts = {}
 ): number[] {
   const dt = opts.dt ?? 0.1;
-  const steps = opts.steps ?? 800;
+  const steps = opts.steps ?? 600;
   const thermalMass = opts.thermalMass ?? 50;
   const lossCoeff = opts.lossCoeff ?? 0.05;
+  const noiseAmplitude = opts.noiseAmplitude ?? 0;
   let temp = ambientTemp;
   let integral = 0;
   let prevErr = 0;
   const data: number[] = [];
   for (let i = 0; i < steps; i++) {
-    const err = setpoint - temp;
+    const measuredTemp =
+      noiseAmplitude > 0
+        ? temp + (Math.random() - 0.5) * 2 * noiseAmplitude
+        : temp;
+    const err = setpoint - measuredTemp;
     integral += err * dt;
     const deriv = (err - prevErr) / dt;
     let heaterPower = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
-    const heatIn = heaterPower * 0.3;
+    const heatIn = heaterPower * 0.35;
     const heatLoss = (temp - ambientTemp) * lossCoeff;
     temp += ((heatIn - heatLoss) * dt) / thermalMass;
     prevErr = err;
     data.push(temp);
+  }
+  return data;
+}
+
+/**
+ * DC motor speed control with closed-loop PID
+ */
+export function simulateMotorPID(
+  Kp: number,
+  Ki: number,
+  Kd: number,
+  targetSpeed: number,
+  opts: SimOpts = {}
+): number[] {
+  const dt = opts.dt ?? 0.1;
+  const steps = opts.steps ?? 600;
+  const inertia = opts.inertia ?? 0.025;
+  const friction = opts.friction ?? 0.08;
+  const noiseAmplitude = opts.noiseAmplitude ?? 0;
+  let speed = 0;
+  let integral = 0;
+  let prevErr = 0;
+  const data: number[] = [];
+  for (let i = 0; i < steps; i++) {
+    const measured =
+      noiseAmplitude > 0
+        ? speed + (Math.random() - 0.5) * 2 * noiseAmplitude
+        : speed;
+    const err = targetSpeed - measured;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    const controlOutput = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
+    const torque = controlOutput * 0.15;
+    const accel = (torque - friction * speed) / inertia;
+    speed += accel * dt;
+    speed = Math.max(0, speed);
+    prevErr = err;
+    data.push(speed);
+  }
+  return data;
+}
+
+/**
+ * Second-order underdamped plant with closed-loop PID control
+ */
+export function simulateSecondOrderPID(
+  Kp: number,
+  Ki: number,
+  Kd: number,
+  setpoint: number,
+  opts: SimOpts = {}
+): number[] {
+  const dt = opts.dt ?? 0.1;
+  const steps = opts.steps ?? 600;
+  const zeta = 0.28;
+  const wn = 1.5;
+  const noiseAmplitude = opts.noiseAmplitude ?? 0;
+  let pos = 0;
+  let vel = 0;
+  let integral = 0;
+  let prevErr = 0;
+  const data: number[] = [];
+  for (let i = 0; i < steps; i++) {
+    const measured =
+      noiseAmplitude > 0
+        ? pos + (Math.random() - 0.5) * 2 * noiseAmplitude
+        : pos;
+    const err = setpoint - measured;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    const u = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
+    const accel = u * 0.5 - 2 * zeta * wn * vel - wn * wn * pos * 0.5;
+    vel += accel * dt;
+    pos += vel * dt;
+    pos = Math.max(0, pos);
+    prevErr = err;
+    data.push(pos);
   }
   return data;
 }
@@ -675,6 +757,7 @@ export interface ModularCascadeConfig {
   disturbanceMagnitude?: number; // extra outflow draw
   disturbanceStartTime?: number; // seconds
   noiseAmplitude?: number;
+  innerNoiseAmplitude?: number;
   minValvePct?: number;
   maxValvePct?: number;
   tankArea?: number;
@@ -757,7 +840,8 @@ export function simulateCascadeTank(config: ModularCascadeConfig = {}): ModularT
 
     // 2. Sensor measurement with optional noise
     const measuredLevel = applySensorNoise(level, noiseAmp);
-    const measuredFlow = applySensorNoise(qIn, noiseAmp * 0.5);
+    const flowNoise = config.innerNoiseAmplitude !== undefined ? config.innerNoiseAmplitude : noiseAmp * 0.5;
+    const measuredFlow = applySensorNoise(qIn, flowNoise);
 
     // 3. Outer Level Loop (runs every outerSteps inner steps)
     if (i % outerSteps === 0) {

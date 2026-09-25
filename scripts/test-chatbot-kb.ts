@@ -1,4 +1,4 @@
-import { queryConsoleChatbot } from "@/lib/console-chatbot-kb";
+import { queryConsoleChatbot } from "../lib/console-chatbot-kb";
 
 const originalQueries = [
   "What is a pressure transmitter?",
@@ -35,6 +35,8 @@ console.log("===================================================================
 console.log("PART A: ORIGINAL BENCHMARK QUERIES (Regression Check)");
 console.log("===============================================================================\n");
 
+let failures = 0;
+
 originalQueries.forEach((q, idx) => {
   const res = evaluateQuery(q);
   console.log(`--- BENCHMARK ${idx + 1} ---`);
@@ -48,6 +50,15 @@ originalQueries.forEach((q, idx) => {
     console.log(`ROUTE: ${res.entry.routeRef}`);
   }
   console.log(`ANSWER:\n${res.answer}\n`);
+
+  if (idx < 5 && !res.matched) {
+    console.error(`FAIL: Benchmark query ${idx + 1} "${q}" must match KB!`);
+    failures++;
+  }
+  if (idx === 5 && res.matched) {
+    console.error(`FAIL: Off-topic query "${q}" must NOT match KB!`);
+    failures++;
+  }
 });
 
 console.log("===============================================================================");
@@ -67,4 +78,16 @@ check1Queries.forEach((q, idx) => {
     console.log(`ROUTE: ${res.entry.routeRef}`);
   }
   console.log(`ANSWER:\n${res.answer}\n`);
+
+  if (q === "tell me a joke" && res.matched) {
+    console.error(`FAIL: Nonsense query "${q}" must NOT match KB!`);
+    failures++;
+  }
 });
+
+if (failures > 0) {
+  console.error(`\n>>> TEST FAILED: ${failures} assertions failed. <<<`);
+  process.exit(1);
+} else {
+  console.log("\n>>> ALL CHATBOT KB REGRESSION ASSERTIONS PASSED. <<<");
+}

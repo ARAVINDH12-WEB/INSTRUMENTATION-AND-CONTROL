@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import IntelligenceDisclaimer from "@/components/IntelligenceDisclaimer";
+import InstrumentPanel from "@/components/pid-lab/InstrumentPanel";
+import OscilloscopeReadout from "@/components/ui/OscilloscopeReadout";
 
 interface RulResult {
   sensor_id: string;
@@ -100,20 +102,21 @@ export default function PredictiveMaintenancePage() {
       <SiteHeader />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <header className="mb-6 max-w-3xl">
-          <div className="flex items-center gap-2 font-mono text-xs text-cf-amber tracking-widest uppercase mb-2">
-            <span>INTELLIGENCE // MOD-02</span>
-            <span>·</span>
-            <span>RELIABILITY &amp; PROGNOSTICS</span>
-          </div>
-          <h1 className="font-heading text-3xl font-semibold tracking-tight text-cf-text mb-3">
-            Remaining Useful Life (RUL) Estimation
-          </h1>
-          <p className="text-cf-text-dim text-sm md:text-base leading-relaxed">
-            Physics-informed degradation model combining ISO 10816 vibration velocity RMS and Arrhenius thermal acceleration 
-            to forecast equipment lifetime and schedule interventions before catastrophic seizure.
-          </p>
-        </header>
+        <InstrumentPanel className="flex flex-col gap-6">
+          <header className="mb-2 max-w-3xl">
+            <div className="flex items-center gap-2 font-mono text-xs text-amber tracking-widest uppercase mb-2">
+              <span>INTELLIGENCE // MOD-02</span>
+              <span>·</span>
+              <span>RELIABILITY &amp; PROGNOSTICS</span>
+            </div>
+            <h1 className="font-panel-heading text-3xl font-bold tracking-tight text-text mb-3">
+              Remaining Useful Life (RUL) Estimation
+            </h1>
+            <p className="font-panel-body text-sm md:text-base text-text-dim leading-relaxed">
+              Physics-informed degradation model combining ISO 10816 vibration velocity RMS and Arrhenius thermal acceleration 
+              to forecast equipment lifetime and schedule interventions before catastrophic seizure.
+            </p>
+          </header>
 
         <IntelligenceDisclaimer />
 
@@ -280,28 +283,16 @@ export default function PredictiveMaintenancePage() {
                   )}
                 </div>
 
-                {/* Primary Number: Predicted RUL */}
-                <div className="my-6 p-5 bg-cf-panel-2 rounded border border-cf-line text-center">
-                  <div className="text-xs font-mono text-cf-text-faint tracking-wider uppercase mb-1">
-                    ESTIMATED REMAINING USEFUL LIFE (RUL)
-                  </div>
-                  <div
-                    className={`text-4xl md:text-5xl font-mono font-bold tracking-tight ${
-                      result?.status_color === "verdigris"
-                        ? "text-cf-verdigris"
-                        : result?.status_color === "amber"
-                        ? "text-cf-amber"
-                        : "text-cf-crimson"
-                    }`}
-                  >
-                    {result ? `${result.predicted_rul_hours.toLocaleString()} hrs` : "—"}
-                  </div>
-                  <div className="text-xs font-mono text-cf-text-dim mt-2">
-                    CONFIDENCE INTERVAL (90% CI):{" "}
-                    <span className="text-cf-text">
-                      {result ? `${result.confidence_interval[0]} hrs – ${result.confidence_interval[1]} hrs` : "—"}
-                    </span>
-                  </div>
+                {/* Primary Number: Predicted RUL with Oscilloscope Scanline Readout */}
+                <div className="my-6">
+                  <OscilloscopeReadout
+                    label="ESTIMATED REMAINING USEFUL LIFE (RUL)"
+                    value={result ? `${result.predicted_rul_hours.toLocaleString()}` : "—"}
+                    unit="hrs"
+                    variant={result?.status_color === "crimson" ? "crimson" : result?.status_color === "amber" ? "amber" : "verdigris"}
+                    size="lg"
+                    subtext={result ? `CONFIDENCE INTERVAL (90% CI): ${result.confidence_interval[0]} hrs – ${result.confidence_interval[1]} hrs` : "AWAITING TELEMETRY STRESS RUN"}
+                  />
                 </div>
 
                 {/* Progress Bar Health Band */}
@@ -342,6 +333,7 @@ export default function PredictiveMaintenancePage() {
             </div>
           </div>
         </div>
+        </InstrumentPanel>
       </main>
 
       <SiteFooter subtitle="PROGNOSTIC ENGINE // WEIBULL DEGRADATION" />

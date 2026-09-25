@@ -88,23 +88,41 @@ export default function NotesPage() {
             </p>
           </article>
 
-          <article className="bg-cf-panel/75 p-6 md:p-8 border border-cf-line rounded opacity-80">
-            <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-cf-text-faint mb-2">
-              <span className="bg-cf-panel-2 text-cf-text-dim border border-cf-line px-2 py-0.5 rounded text-[11px]">
-                STANDARDS
+          <article className="bg-cf-panel p-6 md:p-8 border border-cf-line rounded transition-colors hover:bg-[#201D17] hover:border-cf-amber group">
+            <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-cf-text-faint mb-3">
+              <span className="bg-cf-amber/15 text-cf-amber border border-cf-amber/40 px-2 py-0.5 rounded text-[11px]">
+                STANDARDS // FUNCTIONAL SAFETY
               </span>
-              <span>TAG: SIL / IEC-61508</span>
+              <span>TAG: SIS / SIL / IEC-61511</span>
               <span>·</span>
-              <span className="text-cf-amber-dim font-mono">COMING IN PHASE 2</span>
+              <span>15 MIN READ</span>
+              <span>·</span>
+              <span className="text-cf-verdigris font-semibold">COMPLETE MONOGRAPH</span>
             </div>
 
-            <h3 className="font-heading text-lg font-semibold text-cf-text-dim mb-2">
-              Safety Instrumented Systems (SIS) &amp; PFDavg Calculations
-            </h3>
+            <h2 className="font-heading text-xl md:text-2xl font-semibold text-cf-text mb-3 group-hover:text-cf-amber transition-colors">
+              <Link href="/notes/safety-instrumented-systems">
+                Safety Instrumented Systems (SIS), SIL Concepts &amp; PFD<sub>avg</sub> Modeling
+              </Link>
+            </h2>
 
-            <p className="text-cf-text-faint text-sm leading-relaxed">
-              Probability of Failure on Demand, Proof Test Intervals, and 1oo2 vs 2oo3 architecture voting reliability.
+            <p className="text-cf-text-dim text-sm md:text-base leading-relaxed mb-6">
+              A foundational guide to industrial functional safety: why safety instrumented systems are architecturally 
+              separated from Basic Process Control Systems (BPCS), low-demand SIL 1–4 targets, the mathematical derivation 
+              and physical meaning of PFD<sub>avg</sub> ≈ (λ<sub>D</sub> × T) / 2, and the four critical limitations of the simplex model.
             </p>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-t border-cf-line-soft pt-4 gap-4">
+              <Link
+                href="/notes/safety-instrumented-systems"
+                className="inline-flex items-center gap-2 bg-cf-amber text-cf-bg font-mono font-bold text-xs uppercase px-4 py-2 rounded hover:brightness-110 tracking-wider"
+              >
+                READ COMPLETE GUIDE ⟶
+              </Link>
+              <span className="font-mono text-xs text-cf-text-faint">
+                CF-NOTE-002 // IEC 61508 &amp; 61511
+              </span>
+            </div>
           </article>
         </div>
       </main>
