@@ -139,5 +139,8 @@ def run_tests():
     print("ALL STAGE 3a + FAULT CLASSIFIER ENDPOINTS VERIFIED!")
     print("==================================================")
 
+def test_all_endpoints():
+    run_tests()
+
 if __name__ == "__main__":
     run_tests()
