@@ -117,8 +117,8 @@ def run_tests():
     # Verify confusion matrix
     cm = data_b["confusion_matrix"]
     pcm = data_b["per_class_metrics"]
-    print("\n    Confusion Matrix (Actual Rows vs Predicted Cols):")
-    header = f"    {'Actual \\ Pred':<14} | " + " | ".join(f"{c:<7}" for c in data_b["classes"])
+    col_label = "Actual \\ Pred"
+    header = f"    {col_label:<14} | " + " | ".join(f"{c:<7}" for c in data_b["classes"])
     print(header)
     print("    " + "-" * 65)
     for act in data_b["classes"]:
