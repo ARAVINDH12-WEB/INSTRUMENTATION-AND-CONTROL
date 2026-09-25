@@ -2,6 +2,12 @@
 """
 
 import json
+import sys
+from pathlib import Path
+
+# Ensure backend directory is in sys.path for clean execution from repository root
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from fastapi.testclient import TestClient
 from main import app
 

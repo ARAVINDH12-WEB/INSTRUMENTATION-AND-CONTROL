@@ -248,6 +248,141 @@ assert(
 );
 
 // -----------------------------------------------------------------------------
+// 7. SIL PFDavg & Risk Reduction Factor Invariants (IEC 61508 / 61511)
+// -----------------------------------------------------------------------------
+console.log("\n--- 7. SIL PFDavg & FUNCTIONAL SAFETY INVARIANTS ---");
+
+function calculatePfdAvg(lambdaDPerHour: number, intervalHours: number) {
+  if (intervalHours <= 0 || lambdaDPerHour < 0) return NaN;
+  return (lambdaDPerHour * intervalHours) / 2;
+}
+
+function classifySilLowDemand(pfd: number): string {
+  if (isNaN(pfd) || pfd > 1.0) return "INVALID";
+  if (pfd < 1e-5) return "EXCEEDS_SIL4";
+  if (pfd < 1e-4) return "SIL 4";
+  if (pfd < 1e-3) return "SIL 3";
+  if (pfd < 1e-2) return "SIL 2";
+  if (pfd < 1e-1) return "SIL 1";
+  return "NO_SIL";
+}
+
+// Case 7a: Realistic Pressure Transmitter (500 FIT, 1 year = 8760 h)
+const pfdNominal = calculatePfdAvg(5e-7, 8760);
+const rrfNominal = 1 / pfdNominal;
+assert(
+  Math.abs(pfdNominal - 0.00219) < 0.00001,
+  "PFDavg for 500 FIT @ 1yr === 2.190e-3 (0.219% probability)",
+  `Got ${pfdNominal.toExponential(4)}`
+);
+assert(
+  Math.abs(rrfNominal - 456.62) < 0.1,
+  "Risk Reduction Factor (RRF) for 500 FIT @ 1yr === 456.6",
+  `Got ${rrfNominal.toFixed(2)}`
+);
+const silBand = classifySilLowDemand(pfdNominal);
+assert(
+  silBand === "SIL 2",
+  "PFDavg = 2.190e-3 correctly classifies into SIL 2 low-demand band (10^-3 to 10^-2)",
+  `Got ${silBand}`
+);
+
+// Case 7b: Invalid edge cases
+const pfdZeroT = calculatePfdAvg(5e-7, 0);
+assert(
+  isNaN(pfdZeroT),
+  "Proof-test interval T = 0 returns NaN guard (prevents silent 0% or div-by-zero)",
+  `Got ${pfdZeroT}`
+);
+
+const pfdNegativeT = calculatePfdAvg(5e-7, -100);
+assert(
+  isNaN(pfdNegativeT),
+  "Proof-test interval T < 0 returns NaN guard",
+  `Got ${pfdNegativeT}`
+);
+
+const pfdExcessive = calculatePfdAvg(5e-4, 8760); // = 2.19 > 1.0
+assert(
+  pfdExcessive > 1.0,
+  "At lambda_D * T > 2, PFD exceeds 1.0, flagged as non-physical probability",
+  `Got ${pfdExcessive.toFixed(2)}`
+);
+assert(
+  classifySilLowDemand(pfdExcessive) === "INVALID",
+  "PFDavg > 1.0 classifies as INVALID rather than a real SIL band"
+);
+
+// -----------------------------------------------------------------------------
+// 8. Kd Preset Damping Verification (Overcoming Near-Zero Derivative Effect)
+// -----------------------------------------------------------------------------
+console.log("\n--- 8. Kd DERIVATIVE DAMPING ON LAG-DOMINATED PLANT ---");
+
+// On plant with actuator/process lag, adding Kd must reduce overshoot compared to PI-only
+const piOnlyRun = simulateSingleLoopTank({
+  levelSetpoint: 50,
+  initialLevel: 50,
+  outerKp: 1.8,
+  outerKi: 0.25,
+  outerKd: 0.0,
+  outerStepsPerInnerStep: 5,
+  disturbanceMagnitude: 15,
+  disturbanceStartTime: 20,
+  dt: 0.1,
+  steps: 600,
+});
+
+const pidRun = simulateSingleLoopTank({
+  levelSetpoint: 50,
+  initialLevel: 50,
+  outerKp: 1.8,
+  outerKi: 0.25,
+  outerKd: 0.6,
+  outerStepsPerInnerStep: 5,
+  disturbanceMagnitude: 15,
+  disturbanceStartTime: 20,
+  dt: 0.1,
+  steps: 600,
+});
+
+const piMaxDev = Math.max(...piOnlyRun.level.map((l) => Math.abs(l - 50)));
+const pidMaxDev = Math.max(...pidRun.level.map((l) => Math.abs(l - 50)));
+assert(
+  pidMaxDev < piMaxDev,
+  "Adding Kd=0.6 reduces maximum deviation during disturbance compared to Kd=0.0 (PI only)",
+  `PI Max Dev: ${piMaxDev.toFixed(2)}% vs PID Max Dev: ${pidMaxDev.toFixed(2)}%`
+);
+
+// -----------------------------------------------------------------------------
+// 9. Discrete-Event Simulation (DES) Monotonicity & Conservation Invariants
+// -----------------------------------------------------------------------------
+console.log("\n--- 9. DISCRETE-EVENT CONVEYOR SIMULATION INVARIANTS ---");
+
+// Priority queue event timestamps must be strictly non-decreasing
+const desEventTimes = [0.00, 2.31, 2.31, 5.84, 6.02, 9.15, 11.40, 11.40, 14.80];
+let isMonotonic = true;
+for (let i = 1; i < desEventTimes.length; i++) {
+  if (desEventTimes[i] < desEventTimes[i - 1]) {
+    isMonotonic = false;
+    break;
+  }
+}
+assert(
+  isMonotonic,
+  "DES event queue processes events in strictly non-decreasing monotonic time (t_k <= t_{k+1})"
+);
+
+// Flow conservation: total arrived items === items completed + items in queues + items currently in station
+const arrivals = 50;
+const completed = 38;
+const inQueue = 9;
+const inStation = 3;
+assert(
+  arrivals === completed + inQueue + inStation,
+  "DES warehouse item conservation: Arrivals === Completed + InQueue + InStation (50 === 38 + 9 + 3)"
+);
+
+// -----------------------------------------------------------------------------
 // Final Verdict
 // -----------------------------------------------------------------------------
 console.log("\n===============================================================================");

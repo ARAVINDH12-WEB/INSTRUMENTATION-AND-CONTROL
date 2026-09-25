@@ -77,6 +77,8 @@ When the FastAPI server is running, interactive Swagger docs are available at:
 | `POST` | `/api/predict/fault` | Time-series sensor fault detection | `{"readings": [49.8, 50.1, 55.4], "sensor_id": "PT-101"}` |
 | `POST` | `/api/predict/rul` | Remaining Useful Life estimation | `{"sensor_id": "TT-201A", "vibration_rms": 2.4, "temperature_c": 74.2, "operating_hours": 3420.0}` |
 | `POST` | `/api/forecast/temperature` | Autoregressive temperature projection | `{"historical_temperatures": [65.2, 65.8, 66.5], "horizon_steps": 10}` |
+| `POST` | `/api/forecast/energy` | Multi-method energy load forecast (Holt-Winters, seasonal) | `{"horizon_steps": 24, "baseline_kw": 450.0}` |
+| `POST` | `/api/predict/fault/benchmark` | Multi-class fault confusion matrix benchmark | None (URL params: `seed=42&count_per_class=50`) |
 
 ### Sample `curl` Requests
 
