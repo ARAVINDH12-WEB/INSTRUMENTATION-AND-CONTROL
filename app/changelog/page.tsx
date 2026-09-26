@@ -125,24 +125,24 @@ export default function ChangelogPage() {
                 </div>
 
                 <div className="rounded border border-line-soft bg-surface-dark p-3 space-y-2">
-                  <div className="text-ember font-semibold">TEST 2: HEAT EXCHANGER DEAD TIME</div>
+                  <div className="text-ember font-semibold">TEST 2: HEAT EXCHANGER TRANSPORT DEAD TIME</div>
                   <div className="text-text-faint text-[11px]">Same Tuning: Kp=2.1, Ki=0.35, Kd=0.1, SP=60°C, Initial=20°C</div>
                   <div className="space-y-1 text-text-dim pt-1 border-t border-line-soft">
                     <div className="flex justify-between">
                       <span>Dead Time θd = 0.0s:</span>
-                      <span className="text-text font-semibold">31.27% OS (Peak: 78.76°C)</span>
+                      <span className="text-text font-semibold">4.42% OS · ts=12.8s (Peak: 62.65°C)</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Dead Time θd = 3.0s:</span>
-                      <span className="text-ember font-bold">32.18% OS (Peak: 79.31°C)</span>
+                      <span className="text-ember font-bold">9.82% OS · ts=40.4s (Peak: 65.89°C)</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Dead Time θd = 6.0s:</span>
-                      <span className="text-ember">32.78% OS (Peak: 79.67°C)</span>
+                      <span className="text-ember">11.39% OS · ts=44.3s (Peak: 66.83°C)</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Buffer Degradation:</span>
-                      <span className="text-text">Linear phase shift -&omega;&middot;&theta;d</span>
+                      <span>Aggressive Ki=0.85 @ 6s:</span>
+                      <span className="text-crimson font-semibold">ts=75.4s (Oscillatory Dip: 53.57°C)</span>
                     </div>
                   </div>
                 </div>
@@ -152,22 +152,23 @@ export default function ChangelogPage() {
             {/* Section 3: Comparative Analysis & Physical Rationale */}
             <div>
               <h3 className="font-heading text-sm font-semibold text-amber uppercase tracking-wider mb-2">
-                3. Comparative Dynamic Analysis: Why Multi-Tank Was Far More Dramatic
+                3. Comparative Dynamic Analysis &amp; Investigation Findings
               </h3>
               <p className="font-sans text-sm text-text-dim leading-relaxed">
-                Between the two experiments, the <strong className="text-text">Single-Tank vs. Multi-Tank comparison was substantially more dramatic</strong>,
-                causing overshoot to explode from <strong className="text-amber">18.91% to 94.04%</strong> and rise time to quadruple from <strong className="text-amber">9.7s to 37.9s</strong> under identical PID gains.
+                <strong className="text-text">Investigation of Dead-Time Sensitivity:</strong> An initial formulation without cold-stream heat dissipation allowed integrator windup to saturate the hot steam valve at 100% for 70s. Because delaying a saturated signal yields an identical 100% signal (<code className="font-mono text-xs text-amber">u(t - θd) ≡ 100%</code>), the delay buffer was dynamically masked. Incorporating the physical counter-current cold stream heat removal (<code className="font-mono text-xs text-amber">F_cold·(Tout - Tcold)</code>) and sizing thermal capacitance to <code className="font-mono text-xs text-amber">Cth = 12 (τ ≈ 12s)</code> restored the delay-dominated regime (<code className="font-mono text-xs text-amber">θd / τ = 0.25 to 0.50</code>). Under this physical model, transport lag dramatically expands settling time from <strong className="text-amber">12.8s to 40.4s (over 3x slower)</strong> and more than doubles overshoot from <strong className="text-amber">4.42% to 9.82%</strong>, with aggressive integral action (<code className="font-mono text-xs text-amber">Ki=0.85</code>) triggering severe oscillatory ringing (<code className="font-mono text-xs text-amber">ts=75.4s</code>, undershoot dip to 53.57°C).
               </p>
               <p className="font-sans text-sm text-text-dim leading-relaxed mt-2">
-                <strong className="text-text">Physical Control Rationale:</strong> In a single tank, the transfer function is strictly first-order:
-                <code className="block my-1 font-mono text-xs text-amber">G₁(s) = Kv / (A₁·s + 1/R₁)</code>
-                which provides a phase lag asymptotically bounded by <strong className="text-text">-90&deg;</strong>.
-                When two tanks are cascaded in series, Tank 1 acts as an unmeasured physical low-pass filter between the control valve and Tank 2:
-                <code className="block my-1 font-mono text-xs text-amber">G₂(s) = Kv / [(A₁·s + 1/R₁) &middot; (A₂·s + 1/R₂)]</code>
-                This introduces a <strong className="text-text">second pole that shifts process phase lag all the way to -180&deg;</strong>.
-                When combined with the controller’s pure integrator (which introduces its own fixed -90&deg; phase shift), the total open-loop phase lag reaches <strong className="text-text">-270&deg;</strong> across the mid-frequency band, completely wiping out the loop’s phase margin and creating massive resonant ringing.
-                By contrast, pure transport delay introduces phase lag that scales with frequency (&phi; = -&omega;&middot;&theta;<sub>d</sub>), meaning at low frequencies the thermal loop retains significant phase margin before higher-frequency phase rollover occurs.
+                <strong className="text-text">Physical Control Rationale (Multi-Tank vs. Dead Time):</strong>
+                Both systems introduce higher-order phase penalties, but through fundamentally distinct physical mechanisms:
               </p>
+              <ul className="list-disc list-inside space-y-1 font-mono text-xs text-text-dim mt-1.5 pl-2">
+                <li>
+                  <strong className="text-text">Multi-Tank (Lumped Intermediate Capacitance):</strong> Cascading two gravity vessels inserts an unmeasured state $h_1$ that adds a second real pole: $G(s) \propto 1 / [(s + 1/\tau_1)(s + 1/\tau_2)]$. At high frequencies, this shifts process phase lag to <strong className="text-amber">-180°</strong>. Together with the controller&apos;s integral action (-90°), total open-loop phase lag reaches <strong className="text-crimson">-270°</strong> across the crossover band, completely annihilating phase margin and producing catastrophic <strong className="text-crimson">94.04% overshoot</strong> under baseline tuning.
+                </li>
+                <li>
+                  <strong className="text-text">Heat Exchanger (Distributed Transport Delay):</strong> Pure dead time has transfer function $e^&#123;-s \theta_d&#125;$. It maintains <strong className="text-text">gain = 1.0 at all frequencies</strong> while rotating phase linearly with frequency ($\Delta\phi = -\omega \theta_d$). At low frequencies, the loop retains phase margin during the initial rise, but the phase lag steadily eats away stability margins at crossover, dragging out settling time by 3.2x and inducing deep cyclic undershoots when integral gain is aggressive.
+                </li>
+              </ul>
             </div>
           </article>
 

@@ -15,8 +15,8 @@ export default function HeatExchangerPage() {
   const [ki, setKi] = useState(0.35);
   const [kd, setKd] = useState(0.1);
   const [deadTime, setDeadTime] = useState(3.0);
-  const [thermalMass, setThermalMass] = useState(40);
-  const [uaCoeff, setUaCoeff] = useState(0.8);
+  const [thermalMass, setThermalMass] = useState(12);
+  const [uaCoeff, setUaCoeff] = useState(1.0);
 
   // Curated comparison presets
   const presets = {
@@ -236,9 +236,9 @@ export default function HeatExchangerPage() {
                   <RotaryKnob
                     label="THERMAL MASS (Cth)"
                     value={thermalMass}
-                    min={15}
-                    max={80}
-                    step={5}
+                    min={5}
+                    max={40}
+                    step={1}
                     precision={0}
                     onChange={setThermalMass}
                     accentColor="#FF8C42"
@@ -315,7 +315,7 @@ export default function HeatExchangerPage() {
                     {metrics.overshootPct.toFixed(1)}%
                   </div>
                   <div className="font-mono text-[9px] text-text-faint">
-                    {deadTime > 0 ? `+${(metrics.overshootPct - 31.27 > 0 ? (metrics.overshootPct - 31.27).toFixed(1) : "0.0")}% vs 0s delay` : "Zero delay ref"}
+                    {deadTime > 0 ? `+${(metrics.overshootPct - 4.42 > 0 ? (metrics.overshootPct - 4.42).toFixed(1) : "0.0")}% vs 0s delay` : "Zero delay ref"}
                   </div>
                 </div>
 

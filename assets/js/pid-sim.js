@@ -461,27 +461,32 @@ function simulateMultiTank(Kp, Ki, Kd, setpoint, opts = {}) {
  */
 function simulateHeatExchanger(Kp, Ki, Kd, setpoint, opts = {}) {
   const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
-  const thermalMass = opts.thermalMass ?? 40;
-  const uaCoeff = opts.uaCoeff ?? 0.8;
+  const thermalMass = opts.thermalMass ?? 12;
+  const uaCoeff = opts.uaCoeff ?? 1.0;
   const coldInletTemp = opts.coldInletTemp ?? 20;
   const hotSourceTemp = opts.hotSourceTemp ?? 95;
+  const coldFlowRate = opts.coldFlowRate ?? 0.5;
   const deadTimeSteps = Math.round((opts.deadTimeSeconds ?? 3.0) / dt);
+  const initialFlow = opts.initialFlow ?? 0;
 
-  let outletTemp = coldInletTemp, integral = 0, prevErr = 0;
+  let outletTemp = opts.initialTemp ?? coldInletTemp, integral = 0, prevErr = 0;
   const outputHistory = [];
   const data = [];
 
   for (let i = 0; i < steps; i++) {
     const err = setpoint - outletTemp;
     integral += err * dt;
+    integral = Math.max(-100 / (Ki || 1), Math.min(100 / (Ki || 1), integral));
     const deriv = (err - prevErr) / dt;
     let hotFlowPct = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
 
     outputHistory.push(hotFlowPct);
-    const delayedFlow = i >= deadTimeSteps ? outputHistory[i - deadTimeSteps] : (opts.initialFlow ?? outputHistory[0]);
+    const delayedFlow = i < deadTimeSteps ? initialFlow : outputHistory[i - deadTimeSteps];
 
     const heatInput = (delayedFlow / 100) * uaCoeff * (hotSourceTemp - outletTemp);
-    outletTemp += (heatInput / thermalMass) * dt;
+    const heatLoss = coldFlowRate * (outletTemp - coldInletTemp);
+
+    outletTemp += ((heatInput - heatLoss) / thermalMass) * dt;
 
     prevErr = err;
     data.push(outletTemp);

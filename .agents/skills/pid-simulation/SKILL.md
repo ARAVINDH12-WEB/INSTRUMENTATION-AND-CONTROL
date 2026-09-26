@@ -377,29 +377,35 @@ built so far -- which is a distinct and important control challenge
 ```javascript
 function simulateHeatExchanger(Kp, Ki, Kd, setpoint, opts = {}) {
   const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
-  const thermalMass = opts.thermalMass ?? 40;
-  const uaCoeff = opts.uaCoeff ?? 0.8; // overall heat transfer coefficient
+  const thermalMass = opts.thermalMass ?? 12;
+  const uaCoeff = opts.uaCoeff ?? 1.0; // overall heat transfer coefficient
   const coldInletTemp = opts.coldInletTemp ?? 20;
   const hotSourceTemp = opts.hotSourceTemp ?? 95;
+  const coldFlowRate = opts.coldFlowRate ?? 0.5; // continuous cold stream heat removal
   const deadTimeSteps = Math.round((opts.deadTimeSeconds ?? 3.0) / dt);
+  const initialFlow = opts.initialFlow ?? 0;
 
-  let outletTemp = coldInletTemp, integral = 0, prevErr = 0;
+  let outletTemp = opts.initialTemp ?? coldInletTemp, integral = 0, prevErr = 0;
   const outputHistory = []; // for dead-time delay buffer
   const data = [];
 
   for (let i = 0; i < steps; i++) {
     const err = setpoint - outletTemp;
     integral += err * dt;
+    // Anti-windup clamping prevents large setpoint step from saturating the actuator
+    // and masking the delay buffer dynamics
+    integral = Math.max(-100 / (Ki || 1), Math.min(100 / (Ki || 1), integral));
     const deriv = (err - prevErr) / dt;
     let hotFlowPct = Math.max(0, Math.min(100, Kp*err + Ki*integral + Kd*deriv));
 
     outputHistory.push(hotFlowPct);
-    // apply dead time: the flow change from `deadTimeSteps` ago is what 
-    // actually affects the exchanger right now
-    const delayedFlow = outputHistory[Math.max(0, i - deadTimeSteps)];
+    // apply dead time: the flow change from `deadTimeSteps` ago is what reaches the exchanger
+    const delayedFlow = i < deadTimeSteps ? initialFlow : outputHistory[i - deadTimeSteps];
 
     const heatInput = (delayedFlow / 100) * uaCoeff * (hotSourceTemp - outletTemp);
-    outletTemp += (heatInput / thermalMass) * dt;
+    const heatLoss = coldFlowRate * (outletTemp - coldInletTemp);
+
+    outletTemp += ((heatInput - heatLoss) / thermalMass) * dt;
 
     prevErr = err;
     data.push(outletTemp);

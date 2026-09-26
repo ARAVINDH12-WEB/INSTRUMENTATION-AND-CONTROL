@@ -414,8 +414,8 @@ const hex3 = simulateHeatExchanger(2.1, 0.35, 0.1, 60, { deadTimeSeconds: 3.0 })
 const hex3Metrics = computeMetrics(hex3, 60);
 
 assert(
-  hex3Metrics.overshootPct > hex0Metrics.overshootPct,
-  "Heat Exchanger with 3.0s dead time has higher overshoot than zero-delay baseline",
+  hex3Metrics.overshootPct > hex0Metrics.overshootPct * 1.5,
+  "Heat Exchanger with 3.0s dead time has >1.5x higher overshoot than zero-delay baseline",
   `0s: ${hex0Metrics.overshootPct.toFixed(2)}% vs 3s: ${hex3Metrics.overshootPct.toFixed(2)}%`
 );
 
@@ -425,6 +425,12 @@ assert(
   peakHex3 > peakHex0,
   "Heat Exchanger with 3.0s dead time achieves higher peak outlet temperature than zero-delay baseline",
   `0s Peak: ${peakHex0.toFixed(2)}°C vs 3s Peak: ${peakHex3.toFixed(2)}°C`
+);
+
+assert(
+  hex3Metrics.settlingTimeSec > hex0Metrics.settlingTimeSec * 2,
+  "Heat Exchanger with 3.0s dead time inflates settling time by over 2x compared to zero-delay baseline",
+  `0s: ${hex0Metrics.settlingTimeSec.toFixed(1)}s vs 3s: ${hex3Metrics.settlingTimeSec.toFixed(1)}s`
 );
 
 // -----------------------------------------------------------------------------

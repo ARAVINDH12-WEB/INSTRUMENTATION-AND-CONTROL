@@ -247,7 +247,7 @@ export default function PidLabPage() {
       dt: 0.1,
       conditionsTitle: "COUNTER-CURRENT HEAT EXCHANGER WITH TRANSPORT DELAY",
       conditionsDesc:
-        "Model: Shell-and-Tube Exchanger with 3.0s Dead Time · dt = 0.1s · 800 Steps (80.0s Horizon) · Cold In = 20.0°C · Hot Source = 95.0°C · UA = 0.8 · Cth = 40",
+        "Model: Shell-and-Tube Exchanger with 3.0s Dead Time · dt = 0.1s · 800 Steps (80.0s Horizon) · Cold In = 20.0°C · Hot Source = 95.0°C · UA = 1.0 · Cth = 12 · Cold Flow = 0.50",
       simulate: (kp, ki, kd, sp, noise) =>
         simulateHeatExchanger(kp, ki, kd, sp, { steps: 800, dt: 0.1, deadTimeSeconds: 3.0 }),
     },
