@@ -17,6 +17,8 @@ export interface OscilloscopeCanvasProps {
   showPrimary?: boolean;
   showSecondary?: boolean;
   height?: number;
+  labelPrimary?: string;
+  labelSecondary?: string;
 }
 
 interface HoverState {
@@ -45,6 +47,8 @@ export default function OscilloscopeCanvas({
   showPrimary = true,
   showSecondary = true,
   height = 420,
+  labelPrimary = "CTRL A (Amber)",
+  labelSecondary = "CTRL B (Verdigris)",
 }: OscilloscopeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -376,8 +380,10 @@ export default function OscilloscopeCanvas({
         </div>
 
         <div className="flex items-center gap-3 font-mono text-[10px]">
-          <span className="text-[#FFB000]">CH A: 100mV/DIV (T:{totalTime}s)</span>
-          <span className="text-[#4FA98A]">CH B: 100mV/DIV</span>
+          <span style={{ color }}>{labelPrimary.split(" ")[0] || "CH A"}: 100mV/DIV (T:{totalTime}s)</span>
+          {showSecondary && secondaryData && (
+            <span style={{ color: secondaryColor }}>{labelSecondary.split(" ")[0] || "CH B"}: 100mV/DIV</span>
+          )}
         </div>
       </div>
 
@@ -424,8 +430,8 @@ export default function OscilloscopeCanvas({
           <div className="space-y-1">
             {showPrimary && hover.valA !== null && (
               <div className="flex items-center justify-between gap-4 text-xs">
-                <span className="text-amber font-semibold">CTRL A (Amber):</span>
-                <span className="text-amber font-bold">
+                <span className="font-semibold" style={{ color }}>{labelPrimary}:</span>
+                <span className="font-bold" style={{ color }}>
                   {hover.valA.toFixed(2)}{unit}
                   {hover.spA !== null && (
                     <span className="text-[10px] text-text-dim ml-1 font-normal">
@@ -438,8 +444,8 @@ export default function OscilloscopeCanvas({
 
             {showSecondary && hover.valB !== null && (
               <div className="flex items-center justify-between gap-4 text-xs">
-                <span className="text-verdigris font-semibold">CTRL B (Verdigris):</span>
-                <span className="text-verdigris font-bold">
+                <span className="font-semibold" style={{ color: secondaryColor }}>{labelSecondary}:</span>
+                <span className="font-bold" style={{ color: secondaryColor }}>
                   {hover.valB.toFixed(2)}{unit}
                   {hover.spB !== null && (
                     <span className="text-[10px] text-text-dim ml-1 font-normal">

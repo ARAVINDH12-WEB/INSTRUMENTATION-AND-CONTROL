@@ -420,6 +420,75 @@ function drawProcessCanvas(canvas, data, opts = {}) {
   ctx.restore();
 }
 
+/**
+ * Simulates a two-tank interacting system in series.
+ */
+function simulateMultiTank(Kp, Ki, Kd, setpoint, opts = {}) {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
+  const area1 = opts.area1 ?? 1.0, area2 = opts.area2 ?? 1.0;
+  const R1 = opts.R1 ?? 1.5;
+  const R2 = opts.R2 ?? 1.5;
+  const valveGain = opts.valveGain ?? 0.02;
+
+  let h1 = opts.initialLevel1 ?? 20, h2 = opts.initialLevel2 ?? 20;
+  let integral = 0, prevErr = 0;
+  const data = [];
+
+  const scaleHead = (h1 > 3 && R1 < 10) ? 100 : 1;
+
+  for (let i = 0; i < steps; i++) {
+    const err = setpoint - h2;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    let out = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
+    const inflow1 = out * valveGain;
+
+    const outflow1 = (h1 / scaleHead) / R1;
+    const inflow2 = outflow1;
+    const outflow2 = (h2 / scaleHead) / R2;
+
+    h1 = Math.max(0, h1 + ((inflow1 - outflow1) / area1) * dt * (scaleHead > 1 ? 2 : 1));
+    h2 = Math.max(0, h2 + ((inflow2 - outflow2) / area2) * dt * (scaleHead > 1 ? 2 : 1));
+
+    prevErr = err;
+    data.push({ h1, h2 });
+  }
+  return data;
+}
+
+/**
+ * Simulates a counter-current heat exchanger with transport delay.
+ */
+function simulateHeatExchanger(Kp, Ki, Kd, setpoint, opts = {}) {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
+  const thermalMass = opts.thermalMass ?? 40;
+  const uaCoeff = opts.uaCoeff ?? 0.8;
+  const coldInletTemp = opts.coldInletTemp ?? 20;
+  const hotSourceTemp = opts.hotSourceTemp ?? 95;
+  const deadTimeSteps = Math.round((opts.deadTimeSeconds ?? 3.0) / dt);
+
+  let outletTemp = coldInletTemp, integral = 0, prevErr = 0;
+  const outputHistory = [];
+  const data = [];
+
+  for (let i = 0; i < steps; i++) {
+    const err = setpoint - outletTemp;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    let hotFlowPct = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
+
+    outputHistory.push(hotFlowPct);
+    const delayedFlow = i >= deadTimeSteps ? outputHistory[i - deadTimeSteps] : (opts.initialFlow ?? outputHistory[0]);
+
+    const heatInput = (delayedFlow / 100) * uaCoeff * (hotSourceTemp - outletTemp);
+    outletTemp += (heatInput / thermalMass) * dt;
+
+    prevErr = err;
+    data.push(outletTemp);
+  }
+  return data;
+}
+
 // Export for Node/testing if applicable
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -431,6 +500,8 @@ if (typeof module !== 'undefined' && module.exports) {
     simulateTemperature,
     simulateMotorSpeed,
     simulateTankStandalone,
-    drawProcessCanvas
+    drawProcessCanvas,
+    simulateMultiTank,
+    simulateHeatExchanger
   };
 }

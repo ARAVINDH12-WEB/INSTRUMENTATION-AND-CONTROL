@@ -14,6 +14,8 @@ import {
   simulateTemperature,
   simulateMotorPID,
   simulateSecondOrderPID,
+  simulateMultiTank,
+  simulateHeatExchanger,
   computeMetrics,
   calculateMetrics,
 } from "@/lib/pid-math";
@@ -218,6 +220,36 @@ export default function PidLabPage() {
         "Model: Closed-Loop Second-Order Plant · dt = 0.1s · 600 Steps (60.0s Horizon) · Natural Freq ωn = 1.5 rad/s · Plant Damping ζ = 0.28",
       simulate: (kp, ki, kd, sp, noise) =>
         simulateSecondOrderPID(kp, ki, kd, sp, { noiseAmplitude: noise, steps: 600, dt: 0.1 }),
+    },
+    "multi-tank": {
+      id: "multi-tank",
+      name: "Multi-Tank Interacting",
+      accent: "#2DD4BF",
+      unit: "%",
+      minY: 0,
+      maxY: 100,
+      totalTime: 80,
+      dt: 0.1,
+      conditionsTitle: "TWO-TANK INTERACTING GRAVITY COUPLING",
+      conditionsDesc:
+        "Model: Two Tanks in Series with Gravity Head Coupling · Area1 = Area2 = 1.0 m² · R1 = R2 = 1.5 · dt = 0.1s · 800 Steps (80.0s Horizon) · Initial Level = 20.0%",
+      simulate: (kp, ki, kd, sp, noise) =>
+        simulateMultiTank(kp, ki, kd, sp, { steps: 800, dt: 0.1, noiseAmplitude: noise } as any).map((d) => d.h2),
+    },
+    "heat-exchanger": {
+      id: "heat-exchanger",
+      name: "Heat Exchanger (Delay)",
+      accent: "#FF6B4A",
+      unit: "°C",
+      minY: 20,
+      maxY: 100,
+      totalTime: 80,
+      dt: 0.1,
+      conditionsTitle: "COUNTER-CURRENT HEAT EXCHANGER WITH TRANSPORT DELAY",
+      conditionsDesc:
+        "Model: Shell-and-Tube Exchanger with 3.0s Dead Time · dt = 0.1s · 800 Steps (80.0s Horizon) · Cold In = 20.0°C · Hot Source = 95.0°C · UA = 0.8 · Cth = 40",
+      simulate: (kp, ki, kd, sp, noise) =>
+        simulateHeatExchanger(kp, ki, kd, sp, { steps: 800, dt: 0.1, deadTimeSeconds: 3.0 }),
     },
   };
 
@@ -1200,6 +1232,20 @@ export default function PidLabPage() {
                 desc: "Harmonic response with damping ratio zeta and natural frequency wn, dynamically classifying damping regimes.",
                 href: "/pid-lab/second-order",
                 tag: "SIM-05",
+              },
+              {
+                title: "Multi-Tank Interacting System",
+                badge: "2ND-ORDER LAG",
+                desc: "Two gravity-coupled tanks in series. Controlling Tank 2 via Tank 1 inlet introduces an unmeasured intermediate lag.",
+                href: "/pid-lab/multi-tank",
+                tag: "SIM-06",
+              },
+              {
+                title: "Counter-Current Heat Exchanger",
+                badge: "DEAD TIME",
+                desc: "Shell-and-tube thermal process with adjustable transport delay. Demonstrates how dead time erodes stability margins.",
+                href: "/pid-lab/heat-exchanger",
+                tag: "SIM-07",
               },
             ].map((sim) => (
               <article key={sim.title} className="flex flex-col bg-panel p-6 hover:bg-[#211E18] transition-colors">

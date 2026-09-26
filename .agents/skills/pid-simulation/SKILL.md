@@ -322,3 +322,93 @@ function simulateCascadeTank(config) {
 }
 ```
 
+## Multi-tank interacting system (two tanks in series, gravity-coupled)
+
+Two tanks where Tank 1's outflow feeds Tank 2's inflow, and a controller 
+regulates Tank 2's level by adjusting the inlet valve to Tank 1. This is 
+a genuinely higher-order system (2nd order overall) compared to every 
+single-tank simulator built so far.
+
+```javascript
+function simulateMultiTank(Kp, Ki, Kd, setpoint, opts = {}) {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
+  const area1 = opts.area1 ?? 1.0, area2 = opts.area2 ?? 1.0;
+  const R1 = opts.R1 ?? 1.5; // outflow resistance tank1 -> tank2
+  const R2 = opts.R2 ?? 1.5; // outflow resistance tank2 -> drain
+  const valveGain = opts.valveGain ?? 0.02;
+
+  let h1 = opts.initialLevel1 ?? 20, h2 = opts.initialLevel2 ?? 20;
+  let integral = 0, prevErr = 0;
+  const data = []; // { h1, h2 } per step, chart plots h2 (the controlled variable)
+
+  for (let i = 0; i < steps; i++) {
+    const err = setpoint - h2;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    let out = Math.max(0, Math.min(100, Kp*err + Ki*integral + Kd*deriv));
+    const inflow1 = out * valveGain;
+
+    const outflow1 = h1 / R1; // gravity-driven, proportional to head
+    const inflow2 = outflow1; // tank1's outflow IS tank2's inflow -- the coupling
+    const outflow2 = h2 / R2;
+
+    h1 = Math.max(0, h1 + ((inflow1 - outflow1) / area1) * dt);
+    h2 = Math.max(0, h2 + ((inflow2 - outflow2) / area2) * dt);
+
+    prevErr = err;
+    data.push({ h1, h2 });
+  }
+  return data;
+}
+// Teaching point: the controller only measures/acts on h2, but must 
+// contend with Tank 1's dynamics as an unmeasured intermediate lag -- 
+// this is why interacting tank systems are slower to control and more 
+// prone to overshoot than an equivalent single tank at the same gains.
+```
+
+## Heat exchanger (counter-current, with transport delay)
+
+Models a shell-and-tube heat exchanger where a controller adjusts hot-
+fluid flow to regulate outlet temperature of the cold stream. Introduces 
+explicit transport delay (dead time) -- not present in any simulator 
+built so far -- which is a distinct and important control challenge 
+(a delayed measurement makes any feedback loop harder to tune stably).
+
+```javascript
+function simulateHeatExchanger(Kp, Ki, Kd, setpoint, opts = {}) {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
+  const thermalMass = opts.thermalMass ?? 40;
+  const uaCoeff = opts.uaCoeff ?? 0.8; // overall heat transfer coefficient
+  const coldInletTemp = opts.coldInletTemp ?? 20;
+  const hotSourceTemp = opts.hotSourceTemp ?? 95;
+  const deadTimeSteps = Math.round((opts.deadTimeSeconds ?? 3.0) / dt);
+
+  let outletTemp = coldInletTemp, integral = 0, prevErr = 0;
+  const outputHistory = []; // for dead-time delay buffer
+  const data = [];
+
+  for (let i = 0; i < steps; i++) {
+    const err = setpoint - outletTemp;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    let hotFlowPct = Math.max(0, Math.min(100, Kp*err + Ki*integral + Kd*deriv));
+
+    outputHistory.push(hotFlowPct);
+    // apply dead time: the flow change from `deadTimeSteps` ago is what 
+    // actually affects the exchanger right now
+    const delayedFlow = outputHistory[Math.max(0, i - deadTimeSteps)];
+
+    const heatInput = (delayedFlow / 100) * uaCoeff * (hotSourceTemp - outletTemp);
+    outletTemp += (heatInput / thermalMass) * dt;
+
+    prevErr = err;
+    data.push(outletTemp);
+  }
+  return data;
+}
+// Teaching point: with dead time present, aggressive Kp/Ki that would be 
+// stable on an instantaneous process (like the plain tank model) will 
+// oscillate or become unstable here -- this simulator is the right place 
+// to demonstrate why dead time forces more conservative tuning.
+```
+

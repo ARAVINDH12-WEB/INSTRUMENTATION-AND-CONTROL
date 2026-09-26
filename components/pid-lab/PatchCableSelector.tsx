@@ -26,7 +26,7 @@ export const SIMULATORS: SimulatorJack[] = [
     shortName: "TEMP",
     accent: "#FF6B4A", // --ember
     path: "/pid-lab/temperature",
-    description: "Thermal Heat Exchanger System with Delay",
+    description: "Thermal Chamber Asymmetric Dissipation",
   },
   {
     id: "motor",
@@ -43,6 +43,22 @@ export const SIMULATORS: SimulatorJack[] = [
     accent: "#9D7FE8", // --violet
     path: "/pid-lab/second-order",
     description: "Mass-Spring-Damper Underdamped Dynamics",
+  },
+  {
+    id: "multi-tank",
+    name: "Multi-Tank",
+    shortName: "MULTI-TK",
+    accent: "#2DD4BF", // --teal
+    path: "/pid-lab/multi-tank",
+    description: "Coupled Two-Tank Series Gravity Head Dynamics",
+  },
+  {
+    id: "heat-exchanger",
+    name: "Heat Exchanger",
+    shortName: "HEAT-EX",
+    accent: "#FF6B4A", // --ember
+    path: "/pid-lab/heat-exchanger",
+    description: "Counter-Current Shell-and-Tube with Transport Delay",
   },
 ];
 
@@ -140,7 +156,7 @@ export default function PatchCableSelector({
       </div>
 
       {/* Jack Sockets Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 py-2">
         {SIMULATORS.map((sim) => {
           const isSelected = activeSimId === sim.id;
           return (

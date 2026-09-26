@@ -1006,3 +1006,124 @@ export function simulateSingleLoopTank(config: ModularCascadeConfig = {}): Modul
     },
   };
 }
+
+// --- Multi-Tank Interacting System (Two Tanks in Series, Gravity-Coupled) ---
+
+export interface MultiTankDataPoint {
+  h1: number;
+  h2: number;
+}
+
+export interface MultiTankOpts {
+  dt?: number;
+  steps?: number;
+  area1?: number;
+  area2?: number;
+  R1?: number;
+  R2?: number;
+  valveGain?: number;
+  initialLevel1?: number;
+  initialLevel2?: number;
+}
+
+/**
+ * Simulates a two-tank interacting system in series where Tank 1 feeds Tank 2
+ * by gravity, and a PID controller regulates Tank 2 level h2 via Tank 1 inlet valve.
+ * Introduces 2nd-order hydraulic lag and phase lag compared to single-tank.
+ */
+export function simulateMultiTank(
+  Kp: number,
+  Ki: number,
+  Kd: number,
+  setpoint: number,
+  opts: MultiTankOpts = {}
+): MultiTankDataPoint[] {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
+  const area1 = opts.area1 ?? 1.0, area2 = opts.area2 ?? 1.0;
+  const R1 = opts.R1 ?? 1.5; // outflow resistance tank1 -> tank2
+  const R2 = opts.R2 ?? 1.5; // outflow resistance tank2 -> drain
+  const valveGain = opts.valveGain ?? 0.02;
+
+  let h1 = opts.initialLevel1 ?? 20, h2 = opts.initialLevel2 ?? 20;
+  let integral = 0, prevErr = 0;
+  const data: MultiTankDataPoint[] = [];
+
+  // When level is on 0-100 scale and valveGain is 0.02, head scaling (h/100) is required
+  // if R ~ 1.5 to match the single-tank base outflow (outflowBase = 0.6 ~ 1/R).
+  // If h1 is normalized (<= 3) or R >= 10, use direct h/R.
+  const scaleHead = (h1 > 3 && R1 < 10) ? 100 : 1;
+
+  for (let i = 0; i < steps; i++) {
+    const err = setpoint - h2;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    let out = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
+    const inflow1 = out * valveGain;
+
+    const outflow1 = (h1 / scaleHead) / R1; // gravity-driven, proportional to head
+    const inflow2 = outflow1; // tank1's outflow IS tank2's inflow -- the coupling
+    const outflow2 = (h2 / scaleHead) / R2;
+
+    h1 = Math.max(0, h1 + ((inflow1 - outflow1) / area1) * dt * (scaleHead > 1 ? 2 : 1));
+    h2 = Math.max(0, h2 + ((inflow2 - outflow2) / area2) * dt * (scaleHead > 1 ? 2 : 1));
+
+    prevErr = err;
+    data.push({ h1, h2 });
+  }
+  return data;
+}
+
+// --- Heat Exchanger (Counter-Current, with Transport Delay) ---
+
+export interface HeatExchangerOpts {
+  dt?: number;
+  steps?: number;
+  thermalMass?: number;
+  uaCoeff?: number;
+  coldInletTemp?: number;
+  hotSourceTemp?: number;
+  deadTimeSeconds?: number;
+  initialFlow?: number;
+}
+
+/**
+ * Simulates a shell-and-tube heat exchanger where a PID controller adjusts
+ * hot-fluid flow to regulate cold-stream outlet temperature, with transport dead time.
+ */
+export function simulateHeatExchanger(
+  Kp: number,
+  Ki: number,
+  Kd: number,
+  setpoint: number,
+  opts: HeatExchangerOpts = {}
+): number[] {
+  const dt = opts.dt ?? 0.1, steps = opts.steps ?? 800;
+  const thermalMass = opts.thermalMass ?? 40;
+  const uaCoeff = opts.uaCoeff ?? 0.8; // overall heat transfer coefficient
+  const coldInletTemp = opts.coldInletTemp ?? 20;
+  const hotSourceTemp = opts.hotSourceTemp ?? 95;
+  const deadTimeSteps = Math.round((opts.deadTimeSeconds ?? 3.0) / dt);
+
+  let outletTemp = coldInletTemp, integral = 0, prevErr = 0;
+  const outputHistory: number[] = []; // for dead-time delay buffer
+  const data: number[] = [];
+
+  for (let i = 0; i < steps; i++) {
+    const err = setpoint - outletTemp;
+    integral += err * dt;
+    const deriv = (err - prevErr) / dt;
+    let hotFlowPct = Math.max(0, Math.min(100, Kp * err + Ki * integral + Kd * deriv));
+
+    outputHistory.push(hotFlowPct);
+    // apply dead time: the flow change from `deadTimeSteps` ago is what 
+    // actually affects the exchanger right now
+    const delayedFlow = i >= deadTimeSteps ? outputHistory[i - deadTimeSteps] : (opts.initialFlow ?? outputHistory[0]);
+
+    const heatInput = (delayedFlow / 100) * uaCoeff * (hotSourceTemp - outletTemp);
+    outletTemp += (heatInput / thermalMass) * dt;
+
+    prevErr = err;
+    data.push(outletTemp);
+  }
+  return data;
+}

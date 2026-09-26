@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Tank Interacting System Simulator — ControlForge</title>
+  <meta name="description" content="Simulate closed-loop level control of two gravity-coupled tanks in series, demonstrating 2nd-order hydraulic phase lag and intermediate capacitance overshoot.">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #sim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .metric-chip {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+    }
+    @media (max-width: 992px) {
+      .lab-layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="index.html" class="nav-link active">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot active" style="background:#2DD4BF; box-shadow:0 0 6px #2DD4BF;"></span>
+        <span>SIM // MULTI-TANK</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <a href="index.html" style="color:#2DD4BF;">SIMULATION SUITE</a>
+        <span>/</span>
+        <span>HYDRAULIC COUPLING</span>
+        <span>·</span>
+        <span>TWO TANKS IN SERIES</span>
+      </div>
+      <h1 class="page-title">Multi-Tank Interacting System Simulator</h1>
+      <p class="page-desc">
+        Investigate higher-order process dynamics where Tank 1 outflows into Tank 2 by gravity, and a PID controller regulates Tank 2 level (h2) via the Tank 1 inlet valve.
+        Tank 1 acts as an unmeasured intermediate capacitance, delaying feedback and amplifying overshoot.
+      </p>
+    </header>
+
+    <div class="lab-layout">
+      <!-- Left Controls Panel -->
+      <aside class="panel-box" aria-label="Multi-Tank Parameters">
+        <h2 style="font-size: 1.15rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line-soft); padding-bottom: 0.5rem;">
+          Coupled Loop Controls
+        </h2>
+
+        <!-- Presets -->
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint); display: block; margin-bottom: 6px;">
+            TUNING PRESETS
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button id="btn-pre-single" class="btn btn-sm" style="font-size: 0.72rem; padding: 4px 6px;">Single-Tank Gains</button>
+            <button id="btn-pre-tuned" class="btn btn-sm" style="font-size: 0.72rem; padding: 4px 6px; border-color:#2DD4BF; color:#2DD4BF;">Well-Tuned 2nd-Ord</button>
+          </div>
+        </div>
+
+        <!-- Setpoint Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>TARGET LEVEL TANK 2 (h2)</span>
+            <span class="val-display" id="disp-sp" style="color:#2DD4BF;">50%</span>
+          </div>
+          <input type="range" id="input-sp" min="15" max="85" step="1" value="50">
+        </div>
+
+        <!-- Kp Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>PROPORTIONAL GAIN (Kp)</span>
+            <span class="val-display" id="disp-kp">2.10</span>
+          </div>
+          <input type="range" id="input-kp" min="0.2" max="6.0" step="0.1" value="2.1">
+        </div>
+
+        <!-- Ki Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>INTEGRAL GAIN (Ki)</span>
+            <span class="val-display" id="disp-ki">0.35</span>
+          </div>
+          <input type="range" id="input-ki" min="0.0" max="1.5" step="0.02" value="0.35">
+        </div>
+
+        <!-- Kd Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>DERIVATIVE GAIN (Kd)</span>
+            <span class="val-display" id="disp-kd">0.10</span>
+          </div>
+          <input type="range" id="input-kd" min="0.0" max="2.0" step="0.05" value="0.1">
+        </div>
+
+        <!-- R1 Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>INTER-TANK RESISTANCE (R1)</span>
+            <span class="val-display" id="disp-r1">1.50</span>
+          </div>
+          <input type="range" id="input-r1" min="0.5" max="3.5" step="0.1" value="1.5">
+        </div>
+
+        <!-- Trace Toggle -->
+        <div style="border-top: 1px solid var(--line-soft); padding-top: 12px; margin-top: 12px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 0.8rem; cursor: pointer; color: var(--text);">
+            <input type="checkbox" id="check-show-h1" checked style="accent-color: #2DD4BF;">
+            Show Tank 1 Trace (h1 intermediate lag)
+          </label>
+        </div>
+      </aside>
+
+      <!-- Right Graph Panel -->
+      <section class="panel-box" aria-label="Liquid Level Waveforms">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h2 style="font-size: 1.15rem; margin-bottom: 2px;">Dual-Tank Level Transients</h2>
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint);">
+              <span style="color:#2DD4BF;">― h2 (Tank 2 Controlled)</span> &nbsp;|&nbsp; 
+              <span style="color:#588A6E;">― h1 (Tank 1 Intermediate Head)</span>
+            </div>
+          </div>
+          <span class="tag" style="color:#2DD4BF; border-color:rgba(45,212,191,0.4);" id="h2-tag">h2 FINAL: 50.0%</span>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="sim-canvas" width="800" height="380" aria-label="Multi-tank level transient curves"></canvas>
+        </div>
+
+        <!-- Real-time Metrics Readout -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 1.25rem;">
+          <div class="metric-chip">
+            <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint);">h2 OVERSHOOT</div>
+            <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700;" id="val-overshoot">--%</div>
+          </div>
+          <div class="metric-chip">
+            <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint);">h2 RISE TIME</div>
+            <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700;" id="val-risetime">--s</div>
+          </div>
+          <div class="metric-chip">
+            <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint);">h2 SETTLING TIME</div>
+            <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700;" id="val-settling">--s</div>
+          </div>
+          <div class="metric-chip">
+            <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint);">TANK 1 PEAK HEAD</div>
+            <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; color:#588A6E;" id="val-peakh1">--%</div>
+          </div>
+        </div>
+
+        <!-- Teaching Alert Box -->
+        <div class="alert-box alert-amber" style="margin-top: 1.25rem;">
+          <div>
+            <strong>HIGHER-ORDER PROCESS DYNAMICS:</strong>
+            Because the controller only measures and acts upon Tank 2 (h2), Tank 1 acts as an unmeasured intermediate lag. 
+            When tuning gains optimized for an instantaneous single-tank model (Kp=2.1, Ki=0.35) are applied here, Tank 1 head surges dramatically before Tank 2 reaches setpoint, producing over 90% overshoot and prolonged settling time.
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · MULTI-TANK SIMULATOR</div>
+      <div class="footer-links">
+        <a href="../index.html">HOME</a>
+        <a href="../projects/index.html">PROJECTS</a>
+        <a href="index.html">PID LAB</a>
+        <a href="../calculators/index.html">CALCULATORS</a>
+        <a href="../notes/index.html">NOTES</a>
+      </div>
+      <div>SIMULATION KERNEL // PID-SIMULATION SKILL SPEC</div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/pid-sim.js"></script>
+  <script>
+    const elSp = document.getElementById('input-sp');
+    const elKp = document.getElementById('input-kp');
+    const elKi = document.getElementById('input-ki');
+    const elKd = document.getElementById('input-kd');
+    const elR1 = document.getElementById('input-r1');
+    const elShowH1 = document.getElementById('check-show-h1');
+
+    const dispSp = document.getElementById('disp-sp');
+    const dispKp = document.getElementById('disp-kp');
+    const dispKi = document.getElementById('disp-ki');
+    const dispKd = document.getElementById('disp-kd');
+    const dispR1 = document.getElementById('disp-r1');
+
+    const valOvershoot = document.getElementById('val-overshoot');
+    const valRise = document.getElementById('val-risetime');
+    const valSettle = document.getElementById('val-settling');
+    const valPeakH1 = document.getElementById('val-peakh1');
+    const h2Tag = document.getElementById('h2-tag');
+    const canvas = document.getElementById('sim-canvas');
+
+    function runSim() {
+      const sp = parseFloat(elSp.value);
+      const kp = parseFloat(elKp.value);
+      const ki = parseFloat(elKi.value);
+      const kd = parseFloat(elKd.value);
+      const r1 = parseFloat(elR1.value);
+      const showH1 = elShowH1.checked;
+
+      dispSp.textContent = sp.toFixed(0) + '%';
+      dispKp.textContent = kp.toFixed(2);
+      dispKi.textContent = ki.toFixed(2);
+      dispKd.textContent = kd.toFixed(2);
+      dispR1.textContent = r1.toFixed(2);
+
+      const simData = simulateMultiTank(kp, ki, kd, sp, {
+        R1: r1,
+        R2: 1.5,
+        steps: 800,
+        dt: 0.1,
+        initialLevel1: 20,
+        initialLevel2: 20
+      });
+
+      const h2 = simData.map(d => d.h2);
+      const h1 = simData.map(d => d.h1);
+
+      const metrics = computeMetrics(h2, sp);
+      const maxH1 = Math.max(...h1);
+      const finalH2 = h2[h2.length - 1];
+
+      valOvershoot.textContent = metrics.overshootPct.toFixed(1) + '%';
+      valOvershoot.style.color = metrics.overshootPct > 20 ? 'var(--crimson)' : (metrics.overshootPct < 5 ? 'var(--verdigris)' : '#2DD4BF');
+      valRise.textContent = metrics.riseTimeSec !== null ? metrics.riseTimeSec.toFixed(1) + 's' : 'N/A';
+      valSettle.textContent = metrics.settlingTimeSec > 0 ? metrics.settlingTimeSec.toFixed(1) + 's' : '>80s';
+      valPeakH1.textContent = maxH1.toFixed(1) + '%';
+      h2Tag.textContent = 'h2 FINAL: ' + finalH2.toFixed(1) + '%';
+
+      drawDualCanvas(canvas, h2, showH1 ? h1 : null, sp);
+    }
+
+    function drawDualCanvas(cv, dataH2, dataH1, setpoint) {
+      if (!cv) return;
+      const ctx = cv.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = cv.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+
+      if (cv.width !== Math.floor(w * dpr) || cv.height !== Math.floor(h * dpr)) {
+        cv.width = Math.floor(w * dpr);
+        cv.height = Math.floor(h * dpr);
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = '#090E0C';
+      ctx.fillRect(0, 0, w, h);
+
+      const padL = 45, padR = 20, padT = 25, padB = 35;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+      const steps = dataH2.length;
+
+      const toX = idx => padL + (idx / (steps - 1)) * plotW;
+      const toY = val => padT + plotH - (val / 100) * plotH;
+
+      // Reticle Grid
+      ctx.strokeStyle = 'rgba(42, 70, 55, 0.35)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 10; i++) {
+        const gx = padL + (i / 10) * plotW;
+        ctx.beginPath(); ctx.moveTo(gx, padT); ctx.lineTo(gx, padT + plotH); ctx.stroke();
+      }
+      for (let j = 0; j <= 8; j++) {
+        const gy = padT + (j / 8) * plotH;
+        ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(padL + plotW, gy); ctx.stroke();
+      }
+
+      // Axis ticks
+      ctx.font = '10px "IBM Plex Mono", monospace';
+      ctx.fillStyle = 'rgba(167, 156, 138, 0.75)';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let j = 0; j <= 8; j += 2) {
+        const val = (1 - j / 8) * 100;
+        ctx.fillText(val.toFixed(0) + '%', padL - 6, padT + (j / 8) * plotH);
+      }
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i <= 10; i += 2) {
+        ctx.fillText((i * 8).toFixed(0) + 's', padL + (i / 10) * plotW, padT + plotH + 6);
+      }
+
+      // Setpoint line
+      ctx.strokeStyle = 'rgba(237, 230, 218, 0.45)';
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padL, toY(setpoint));
+      ctx.lineTo(padL + plotW, toY(setpoint));
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw H1 (Tank 1) Dimmer Trace
+      if (dataH1) {
+        ctx.strokeStyle = '#588A6E';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        dataH1.forEach((val, idx) => {
+          const x = toX(idx), y = toY(val);
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      // Draw H2 (Tank 2) Controlled Trace
+      ctx.strokeStyle = '#2DD4BF';
+      ctx.lineWidth = 2.5;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#2DD4BF';
+      ctx.beginPath();
+      dataH2.forEach((val, idx) => {
+        const x = toX(idx), y = toY(val);
+        if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    [elSp, elKp, elKi, elKd, elR1, elShowH1].forEach(el => el.addEventListener('input', runSim));
+
+    document.getElementById('btn-pre-single').addEventListener('click', () => {
+      elKp.value = 2.1; elKi.value = 0.35; elKd.value = 0.1; elSp.value = 50; elR1.value = 1.5; runSim();
+    });
+    document.getElementById('btn-pre-tuned').addEventListener('click', () => {
+      elKp.value = 1.6; elKi.value = 0.18; elKd.value = 0.3; elSp.value = 50; elR1.value = 1.5; runSim();
+    });
+
+    window.addEventListener('resize', runSim);
+    runSim();
+  </script>
+</body>
+</html>

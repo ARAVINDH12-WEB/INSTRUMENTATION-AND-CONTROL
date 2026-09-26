@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heat Exchanger Transport Delay Simulator — ControlForge</title>
+  <meta name="description" content="Simulate shell-and-tube counter-current heat exchanger dynamics with adjustable physical transport delay (dead time).">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    #sim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .metric-chip {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+    }
+    @media (max-width: 992px) {
+      .lab-layout {
+        grid-template-columns: 1fr;
+      }
+      .canvas-wrapper {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body class="engineering-grid-bg">
+
+  <!-- Shared Top Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="../index.html" class="brand-link">
+        <div class="brand-mark">CF</div>
+        <div class="brand-text">
+          <span class="brand-name">ControlForge</span>
+          <span class="brand-tagline">MEASURE · MODEL · CONTROL</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="../index.html" class="nav-link">HOME</a>
+        <a href="../projects/index.html" class="nav-link">PROJECTS</a>
+        <a href="index.html" class="nav-link active">PID LAB</a>
+        <a href="../calculators/index.html" class="nav-link">CALCULATORS</a>
+        <a href="../notes/index.html" class="nav-link">NOTES</a>
+      </nav>
+
+      <div class="header-status">
+        <span class="status-dot active" style="background:#FF6B4A; box-shadow:0 0 6px #FF6B4A;"></span>
+        <span>SIM // HEAT-EXCHANGER</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    <header class="page-intro">
+      <div class="page-kicker">
+        <a href="index.html" style="color:#FF6B4A;">SIMULATION SUITE</a>
+        <span>/</span>
+        <span>THERMODYNAMICS</span>
+        <span>·</span>
+        <span>TRANSPORT DEAD TIME</span>
+      </div>
+      <h1 class="page-title">Counter-Current Heat Exchanger Simulator</h1>
+      <p class="page-desc">
+        Investigate closed-loop thermal regulation under pure transport dead time (&theta;d). 
+        Adjust dead time to zero to establish an instantaneous response baseline, then observe how transport lag erodes loop phase margin and demands conservative tuning.
+      </p>
+    </header>
+
+    <div class="lab-layout">
+      <!-- Left Controls Panel -->
+      <aside class="panel-box" aria-label="Heat Exchanger Parameters">
+        <h2 style="font-size: 1.15rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line-soft); padding-bottom: 0.5rem;">
+          Exchanger Actuators &amp; Delay
+        </h2>
+
+        <!-- Presets -->
+        <div style="margin-bottom: 1.25rem;">
+          <label style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint); display: block; margin-bottom: 6px;">
+            DEAD TIME BENCHMARKS
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button id="btn-pre-zero" class="btn btn-sm" style="font-size: 0.72rem; padding: 4px 6px; border-color:var(--verdigris); color:var(--verdigris);">0s Delay (Ref)</button>
+            <button id="btn-pre-nom" class="btn btn-sm" style="font-size: 0.72rem; padding: 4px 6px; border-color:#FF6B4A; color:#FF6B4A;">3s Delay (Nom)</button>
+          </div>
+        </div>
+
+        <!-- Dead Time Slider: Prominent Focus -->
+        <div class="form-group" style="background:#1B1510; border:1px solid rgba(255,107,74,0.4); padding:10px; border-radius:var(--radius); margin-bottom:1rem;">
+          <div class="form-label">
+            <span style="color:#FF6B4A; font-weight:700;">TRANSPORT DEAD TIME (&theta;d)</span>
+            <span class="val-display" id="disp-dt" style="color:#FF6B4A; font-weight:700;">3.0s</span>
+          </div>
+          <input type="range" id="input-dt" min="0.0" max="8.0" step="0.5" value="3.0" style="accent-color:#FF6B4A;">
+          <p style="font-size: 0.7rem; color: var(--text-faint); margin: 4px 0 0 0; font-family: var(--font-mono);">
+            Adjust to 0.0s to compare instantaneous vs delayed thermal response.
+          </p>
+        </div>
+
+        <!-- Setpoint Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>TARGET OUTLET TEMP (Tout,sp)</span>
+            <span class="val-display" id="disp-sp">60°C</span>
+          </div>
+          <input type="range" id="input-sp" min="30" max="80" step="1" value="60">
+        </div>
+
+        <!-- Kp Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>PROPORTIONAL GAIN (Kp)</span>
+            <span class="val-display" id="disp-kp">2.10</span>
+          </div>
+          <input type="range" id="input-kp" min="0.2" max="6.0" step="0.1" value="2.1">
+        </div>
+
+        <!-- Ki Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>INTEGRAL GAIN (Ki)</span>
+            <span class="val-display" id="disp-ki">0.35</span>
+          </div>
+          <input type="range" id="input-ki" min="0.0" max="1.5" step="0.02" value="0.35">
+        </div>
+
+        <!-- Kd Slider -->
+        <div class="form-group">
+          <div class="form-label">
+            <span>DERIVATIVE GAIN (Kd)</span>
+            <span class="val-display" id="disp-kd">0.10</span>
+          </div>
+          <input type="range" id="input-kd" min="0.0" max="2.0" step="0.05" value="0.1">
+        </div>
+      </aside>
+
+      <!-- Right Graph Panel -->
+      <section class="panel-box" aria-label="Thermal Response Waveform">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h2 style="font-size: 1.15rem; margin-bottom: 2px;">Shell &amp; Tube Outlet Temperature Tout(t)</h2>
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint);">
+              Cold In: 20°C &nbsp;|&nbsp; Steam Source: 95°C &nbsp;|&nbsp; Transport Lag: <span id="tag-dt">3.0s</span>
+            </div>
+          </div>
+          <span class="tag" style="color:#FF6B4A; border-color:rgba(255,107,74,0.4);" id="tout-tag">FINAL TOUT: 60.0°C</span>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="sim-canvas" width="800" height="380" aria-label="Heat exchanger outlet temperature curve"></canvas>
+        </div>
+
+        <!-- Metrics Readout -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 1.25rem;">
+          <div class="metric-chip">
+            <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint);">OVERSHOOT</div>
+            <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700; color:#FF6B4A;" id="val-overshoot">--%</div>
+          </div>
+          <div class="metric-chip">
+            <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint);">RISE TIME</div>
+            <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700;" id="val-risetime">--s</div>
+          </div>
+          <div class="metric-chip">
+            <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint);">SETTLING TIME</div>
+            <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700;" id="val-settling">--s</div>
+          </div>
+          <div class="metric-chip">
+            <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint);">PEAK TEMP</div>
+            <div style="font-family: var(--font-mono); font-size: 1.25rem; font-weight: 700;" id="val-peak">--°C</div>
+          </div>
+        </div>
+
+        <!-- Teaching Alert Box -->
+        <div class="alert-box alert-amber" style="margin-top: 1.25rem;">
+          <div>
+            <strong>TRANSPORT DELAY INFLUENCE:</strong>
+            Dead time (&theta;d) shifts the effective control actuation into the future. 
+            Because pure dead time introduces linear negative phase shift (&Delta;&phi; = -&omega; &theta;d) without reducing loop gain, aggressive proportional and integral terms that settle stably under instantaneous response (&theta;d = 0) exhibit elevated overshoot and prolonged decay envelopes here.
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>CONTROLFORGE · HEAT EXCHANGER SIMULATOR</div>
+      <div class="footer-links">
+        <a href="../index.html">HOME</a>
+        <a href="../projects/index.html">PROJECTS</a>
+        <a href="index.html">PID LAB</a>
+        <a href="../calculators/index.html">CALCULATORS</a>
+        <a href="../notes/index.html">NOTES</a>
+      </div>
+      <div>SIMULATION KERNEL // PID-SIMULATION SKILL SPEC</div>
+    </div>
+  </footer>
+
+  <script src="../assets/js/pid-sim.js"></script>
+  <script>
+    const elSp = document.getElementById('input-sp');
+    const elKp = document.getElementById('input-kp');
+    const elKi = document.getElementById('input-ki');
+    const elKd = document.getElementById('input-kd');
+    const elDt = document.getElementById('input-dt');
+
+    const dispSp = document.getElementById('disp-sp');
+    const dispKp = document.getElementById('disp-kp');
+    const dispKi = document.getElementById('disp-ki');
+    const dispKd = document.getElementById('disp-kd');
+    const dispDt = document.getElementById('disp-dt');
+    const tagDt = document.getElementById('tag-dt');
+
+    const valOvershoot = document.getElementById('val-overshoot');
+    const valRise = document.getElementById('val-risetime');
+    const valSettle = document.getElementById('val-settling');
+    const valPeak = document.getElementById('val-peak');
+    const toutTag = document.getElementById('tout-tag');
+    const canvas = document.getElementById('sim-canvas');
+
+    function runSim() {
+      const sp = parseFloat(elSp.value);
+      const kp = parseFloat(elKp.value);
+      const ki = parseFloat(elKi.value);
+      const kd = parseFloat(elKd.value);
+      const dtVal = parseFloat(elDt.value);
+
+      dispSp.textContent = sp.toFixed(0) + '°C';
+      dispKp.textContent = kp.toFixed(2);
+      dispKi.textContent = ki.toFixed(2);
+      dispKd.textContent = kd.toFixed(2);
+      dispDt.textContent = dtVal.toFixed(1) + 's';
+      tagDt.textContent = dtVal.toFixed(1) + 's';
+
+      const data = simulateHeatExchanger(kp, ki, kd, sp, {
+        deadTimeSeconds: dtVal,
+        steps: 800,
+        dt: 0.1,
+        coldInletTemp: 20,
+        hotSourceTemp: 95
+      });
+
+      const metrics = computeMetrics(data, sp);
+      const peak = Math.max(...data);
+      const finalT = data[data.length - 1];
+
+      valOvershoot.textContent = metrics.overshootPct.toFixed(1) + '%';
+      valRise.textContent = metrics.riseTimeSec !== null ? metrics.riseTimeSec.toFixed(1) + 's' : 'N/A';
+      valSettle.textContent = metrics.settlingTimeSec > 0 ? metrics.settlingTimeSec.toFixed(1) + 's' : '>80s';
+      valPeak.textContent = peak.toFixed(1) + '°C';
+      toutTag.textContent = 'FINAL TOUT: ' + finalT.toFixed(1) + '°C';
+
+      drawScopeCanvas(canvas, data, sp);
+    }
+
+    function drawScopeCanvas(cv, data, setpoint) {
+      if (!cv) return;
+      const ctx = cv.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = cv.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+
+      if (cv.width !== Math.floor(w * dpr) || cv.height !== Math.floor(h * dpr)) {
+        cv.width = Math.floor(w * dpr);
+        cv.height = Math.floor(h * dpr);
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.fillStyle = '#090E0C';
+      ctx.fillRect(0, 0, w, h);
+
+      const padL = 45, padR = 20, padT = 25, padB = 35;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+      const steps = data.length;
+
+      const minY = 20, maxY = 100;
+      const toX = idx => padL + (idx / (steps - 1)) * plotW;
+      const toY = val => padT + plotH - ((val - minY) / (maxY - minY)) * plotH;
+
+      // Reticle Grid
+      ctx.strokeStyle = 'rgba(42, 70, 55, 0.35)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 10; i++) {
+        const gx = padL + (i / 10) * plotW;
+        ctx.beginPath(); ctx.moveTo(gx, padT); ctx.lineTo(gx, padT + plotH); ctx.stroke();
+      }
+      for (let j = 0; j <= 8; j++) {
+        const gy = padT + (j / 8) * plotH;
+        ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(padL + plotW, gy); ctx.stroke();
+      }
+
+      // Axis ticks
+      ctx.font = '10px "IBM Plex Mono", monospace';
+      ctx.fillStyle = 'rgba(167, 156, 138, 0.75)';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let j = 0; j <= 8; j += 2) {
+        const val = minY + (1 - j / 8) * (maxY - minY);
+        ctx.fillText(val.toFixed(0) + '°C', padL - 6, padT + (j / 8) * plotH);
+      }
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i <= 10; i += 2) {
+        ctx.fillText((i * 8).toFixed(0) + 's', padL + (i / 10) * plotW, padT + plotH + 6);
+      }
+
+      // Setpoint line
+      ctx.strokeStyle = 'rgba(237, 230, 218, 0.45)';
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(padL, toY(setpoint));
+      ctx.lineTo(padL + plotW, toY(setpoint));
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Glow pass
+      ctx.strokeStyle = 'rgba(255, 107, 74, 0.35)';
+      ctx.lineWidth = 6;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#FF6B4A';
+      ctx.beginPath();
+      data.forEach((val, idx) => {
+        const x = toX(idx), y = toY(val);
+        if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Sharp electron beam
+      ctx.strokeStyle = '#FF6B4A';
+      ctx.lineWidth = 2.5;
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = '#FFF';
+      ctx.beginPath();
+      data.forEach((val, idx) => {
+        const x = toX(idx), y = toY(val);
+        if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    [elSp, elKp, elKi, elKd, elDt].forEach(el => el.addEventListener('input', runSim));
+
+    document.getElementById('btn-pre-zero').addEventListener('click', () => {
+      elDt.value = 0.0; elKp.value = 2.1; elKi.value = 0.35; elKd.value = 0.1; elSp.value = 60; runSim();
+    });
+    document.getElementById('btn-pre-nom').addEventListener('click', () => {
+      elDt.value = 3.0; elKp.value = 2.1; elKi.value = 0.35; elKd.value = 0.1; elSp.value = 60; runSim();
+    });
+
+    window.addEventListener('resize', runSim);
+    runSim();
+  </script>
+</body>
+</html>

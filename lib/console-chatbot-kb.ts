@@ -188,7 +188,7 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     title: "PID Simulation Lab",
     keywords: ["pid lab", "pid simulator", "how does pid lab work", "tuning presets", "simulation"],
     answer:
-      "The PID Lab provides an interactive, client-side control loop workbench. It features 5 distinct dynamic physical process simulators: 1) Tank Level with non-linear gravity outflow; 2) Thermal Process with ambient dissipation; 3) DC Motor Speed with inertia and back-EMF; 4) First-Order Process with dead-time lag; and 5) Second-Order Process with tunable damping ratio (zeta) and natural frequency (wn).",
+      "The PID Lab provides an interactive, client-side control loop workbench. It features 7 distinct dynamic physical process simulators: 1) Tank Level with non-linear gravity outflow; 2) Thermal Process with ambient dissipation; 3) DC Motor Speed with inertia and back-EMF; 4) First-Order Process with step response; 5) Second-Order Process with tunable damping ratio (zeta) and natural frequency (wn); 6) Multi-Tank Interacting System with two coupled gravity vessels in series (2nd-order lag); and 7) Counter-Current Heat Exchanger with transport dead time.",
     routeRef: "/pid-lab",
   },
   {
@@ -252,6 +252,45 @@ export const consoleKnowledgeBase: KnowledgeEntry[] = [
     answer:
       "The Temperature simulator models an electric heating element with ambient heat dissipation: dT/dt = (P_heater - k_loss * (T - T_ambient)) / C_thermal. Because heating can only add energy (unidirectional actuation), recovery from overshoot relies purely on ambient cooling, mirroring real thermal furnaces.",
     routeRef: "/pid-lab/temperature",
+  },
+  {
+    id: "pid-multi-tank-simulator",
+    category: "pid-lab",
+    title: "Multi-Tank Interacting System Simulator",
+    keywords: [
+      "multi tank",
+      "multi-tank",
+      "two tanks",
+      "interacting tanks",
+      "coupled tanks",
+      "higher order",
+      "second order lag",
+      "tank 1",
+      "tank 2",
+      "intermediate lag",
+    ],
+    answer:
+      "The Multi-Tank Interacting System simulator at /pid-lab/multi-tank models two gravity-coupled vessels in series where Tank 1's outflow directly feeds Tank 2's inflow, and a controller regulates Tank 2's level (h2) by modulating inlet valve inflow into Tank 1. This introduces a genuinely 2nd-order hydraulic lag (-180° phase lag) where Tank 1 acts as an unmeasured intermediate capacitance. At gains that are stable on a single tank (Kp=2.1, Ki=0.35), the multi-tank system exhibits severe overshoot (>90%) and prolonged settling time.",
+    routeRef: "/pid-lab/multi-tank",
+  },
+  {
+    id: "pid-heat-exchanger-simulator",
+    category: "pid-lab",
+    title: "Counter-Current Heat Exchanger Simulator (with Transport Delay)",
+    keywords: [
+      "heat exchanger",
+      "transport delay",
+      "dead time",
+      "shell and tube",
+      "counter current",
+      "pure delay",
+      "phase lag",
+      "delay buffer",
+      "dead time knob",
+    ],
+    answer:
+      "The Counter-Current Heat Exchanger simulator at /pid-lab/heat-exchanger models a shell-and-tube thermal unit regulating cold stream outlet temperature via hot fluid flow. It features an adjustable transport dead time knob (0.0s to 10.0s) demonstrating how pure dead time introduces linear negative phase shift (Δφ = -ω θd) without gain attenuation. Comparing deadTime = 0s against deadTime = 3.0s reveals how transport delay degrades phase margin, inflates overshoot, and forces more conservative PID tuning.",
+    routeRef: "/pid-lab/heat-exchanger",
   },
 
   // --- INDUSTRIAL INTELLIGENCE ---

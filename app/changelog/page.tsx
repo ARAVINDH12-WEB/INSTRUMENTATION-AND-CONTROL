@@ -25,6 +25,152 @@ export default function ChangelogPage() {
 
         {/* Changelog Entries List */}
         <div className="space-y-8">
+          {/* Entry: Multi-Tank & Heat Exchanger PID Simulators */}
+          <article className="rounded border border-line bg-panel p-6 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-soft pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded border border-teal/40 bg-teal/10 px-2 py-0.5 font-mono text-xs font-semibold text-teal">
+                    FEATURE // SIMULATION SUITE · SIM-06 &amp; SIM-07
+                  </span>
+                  <span className="font-mono text-xs text-text-faint">
+                    2026-09-25
+                  </span>
+                </div>
+                <h2 className="mt-2 font-heading text-xl font-semibold text-text">
+                  Multi-Tank Interacting System &amp; Counter-Current Heat Exchanger Simulators
+                </h2>
+              </div>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/pid-lab/multi-tank"
+                  className="font-mono text-xs text-teal hover:underline flex items-center gap-1"
+                >
+                  <span>MULTI-TANK</span>
+                  <span>⟶</span>
+                </Link>
+                <Link
+                  href="/pid-lab/heat-exchanger"
+                  className="font-mono text-xs text-ember hover:underline flex items-center gap-1"
+                >
+                  <span>HEAT EXCHANGER</span>
+                  <span>⟶</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Section 1: What was built */}
+            <div>
+              <h3 className="font-heading text-sm font-semibold text-amber uppercase tracking-wider mb-2">
+                1. What Was Built
+              </h3>
+              <p className="font-sans text-sm text-text-dim leading-relaxed mb-3">
+                Expanded the PID Simulation Lab with two higher-order industrial process models:
+                the <strong className="text-text">Multi-Tank Interacting Gravity System (SIM-06)</strong> at{" "}
+                <Link href="/pid-lab/multi-tank" className="text-text hover:text-teal underline">
+                  /pid-lab/multi-tank
+                </Link>{" "}
+                and the <strong className="text-text">Counter-Current Heat Exchanger (SIM-07)</strong> at{" "}
+                <Link href="/pid-lab/heat-exchanger" className="text-text hover:text-ember underline">
+                  /pid-lab/heat-exchanger
+                </Link>.
+                Both simulators feature the full ControlForge industrial instrument-panel treatment:
+                machined brushed-metal enclosures with recessed bezel rivets, precision rotary knobs with click-to-type input,
+                live CRT oscilloscope displays with phosphor persistence decay and hover crosshair readouts,
+                and seamless integration with the central patch-cable routing jack.
+              </p>
+              <ul className="list-disc list-inside space-y-1 font-mono text-xs text-text-dim">
+                <li>
+                  <strong className="text-text">Multi-Tank Dual Trace:</strong> Simultaneously visualizes controlled secondary level $h_2$ (cyan trace) alongside unmeasured intermediate upstream head $h_1$ (dim amber trace), demonstrating intermediate phase lag.
+                </li>
+                <li>
+                  <strong className="text-text">Heat Exchanger Dead-Time Knob:</strong> Exposes dynamic transport lag &theta;<sub>d</sub> &isin; [0.0, 10.0] s via an interactive dial to demonstrate non-minimum-phase delay dynamics against instantaneous processes.
+                </li>
+                <li>
+                  <strong className="text-text">Patch Cable &amp; State Preservation:</strong> Integrated both models into the 6-way jack matrix, preserving active Controller A / Controller B tuning states across hot process swaps.
+                </li>
+                <li>
+                  <strong className="text-text">Chatbot Knowledge Base &amp; Standalone HTML:</strong> Added matching standalone pages (<code className="text-amber">pid-lab/multi-tank.html</code> and <code className="text-amber">pid-lab/heat-exchanger.html</code>) and updated AI assistant retrieval corpora.
+                </li>
+              </ul>
+            </div>
+
+            {/* Section 2: Verification Results */}
+            <div>
+              <h3 className="font-heading text-sm font-semibold text-amber uppercase tracking-wider mb-2">
+                2. Empirical Verification &amp; Metric Comparison
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-3 font-mono text-xs">
+                <div className="rounded border border-line-soft bg-surface-dark p-3 space-y-2">
+                  <div className="text-teal font-semibold">TEST 1: SINGLE-TANK VS. MULTI-TANK</div>
+                  <div className="text-text-faint text-[11px]">Same Tuning: Kp=2.1, Ki=0.35, Kd=0.1, SP=50, Initial=20</div>
+                  <div className="space-y-1 text-text-dim pt-1 border-t border-line-soft">
+                    <div className="flex justify-between">
+                      <span>Single-Tank Overshoot:</span>
+                      <span className="text-text font-semibold">18.91% (Peak: 59.45%)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Multi-Tank (h2) Overshoot:</span>
+                      <span className="text-teal font-bold">94.04% (Peak: 97.02%)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Single-Tank Rise Time:</span>
+                      <span className="text-text">9.7s (Settling: 36.6s)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Multi-Tank (h2) Rise Time:</span>
+                      <span className="text-teal">37.9s (Settling: &gt;79.9s)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded border border-line-soft bg-surface-dark p-3 space-y-2">
+                  <div className="text-ember font-semibold">TEST 2: HEAT EXCHANGER DEAD TIME</div>
+                  <div className="text-text-faint text-[11px]">Same Tuning: Kp=2.1, Ki=0.35, Kd=0.1, SP=60°C, Initial=20°C</div>
+                  <div className="space-y-1 text-text-dim pt-1 border-t border-line-soft">
+                    <div className="flex justify-between">
+                      <span>Dead Time θd = 0.0s:</span>
+                      <span className="text-text font-semibold">31.27% OS (Peak: 78.76°C)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Dead Time θd = 3.0s:</span>
+                      <span className="text-ember font-bold">32.18% OS (Peak: 79.31°C)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Dead Time θd = 6.0s:</span>
+                      <span className="text-ember">32.78% OS (Peak: 79.67°C)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Buffer Degradation:</span>
+                      <span className="text-text">Linear phase shift -&omega;&middot;&theta;d</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Comparative Analysis & Physical Rationale */}
+            <div>
+              <h3 className="font-heading text-sm font-semibold text-amber uppercase tracking-wider mb-2">
+                3. Comparative Dynamic Analysis: Why Multi-Tank Was Far More Dramatic
+              </h3>
+              <p className="font-sans text-sm text-text-dim leading-relaxed">
+                Between the two experiments, the <strong className="text-text">Single-Tank vs. Multi-Tank comparison was substantially more dramatic</strong>,
+                causing overshoot to explode from <strong className="text-amber">18.91% to 94.04%</strong> and rise time to quadruple from <strong className="text-amber">9.7s to 37.9s</strong> under identical PID gains.
+              </p>
+              <p className="font-sans text-sm text-text-dim leading-relaxed mt-2">
+                <strong className="text-text">Physical Control Rationale:</strong> In a single tank, the transfer function is strictly first-order:
+                <code className="block my-1 font-mono text-xs text-amber">G₁(s) = Kv / (A₁·s + 1/R₁)</code>
+                which provides a phase lag asymptotically bounded by <strong className="text-text">-90&deg;</strong>.
+                When two tanks are cascaded in series, Tank 1 acts as an unmeasured physical low-pass filter between the control valve and Tank 2:
+                <code className="block my-1 font-mono text-xs text-amber">G₂(s) = Kv / [(A₁·s + 1/R₁) &middot; (A₂·s + 1/R₂)]</code>
+                This introduces a <strong className="text-text">second pole that shifts process phase lag all the way to -180&deg;</strong>.
+                When combined with the controller’s pure integrator (which introduces its own fixed -90&deg; phase shift), the total open-loop phase lag reaches <strong className="text-text">-270&deg;</strong> across the mid-frequency band, completely wiping out the loop’s phase margin and creating massive resonant ringing.
+                By contrast, pure transport delay introduces phase lag that scales with frequency (&phi; = -&omega;&middot;&theta;<sub>d</sub>), meaning at low frequencies the thermal loop retains significant phase margin before higher-frequency phase rollover occurs.
+              </p>
+            </div>
+          </article>
+
           {/* Entry: Robustness & Disturbance-Rejection Capstone Case Study */}
           <article className="rounded border border-line bg-panel p-6 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-soft pb-4">

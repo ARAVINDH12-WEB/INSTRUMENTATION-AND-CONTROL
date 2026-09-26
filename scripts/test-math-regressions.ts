@@ -13,6 +13,8 @@ import {
   simulateSingleLoopTank,
   simulateCascadeTank,
   calculateMetrics,
+  simulateMultiTank,
+  simulateHeatExchanger,
 } from "../lib/pid-math";
 
 console.log("===============================================================================");
@@ -380,6 +382,49 @@ const inStation = 3;
 assert(
   arrivals === completed + inQueue + inStation,
   "DES warehouse item conservation: Arrivals === Completed + InQueue + InStation (50 === 38 + 9 + 3)"
+);
+
+// -----------------------------------------------------------------------------
+// 10. Multi-Tank & Heat Exchanger Higher-Order Invariants
+// -----------------------------------------------------------------------------
+console.log("\n--- 10. MULTI-TANK & HEAT EXCHANGER HIGHER-ORDER INVARIANTS ---");
+
+// Multi-Tank vs Single-Tank at same baseline tuning (Kp=2.1, Ki=0.35, Kd=0.1)
+const mtSim = simulateMultiTank(2.1, 0.35, 0.1, 50);
+const mtH2 = mtSim.map((d) => d.h2);
+const mtMetrics = computeMetrics(mtH2, 50);
+
+assert(
+  mtMetrics.overshootPct > 80.0,
+  "Multi-Tank h2 exhibits severe overshoot (>80%) under single-tank tuning due to 2nd-order hydraulic lag",
+  `Got ${mtMetrics.overshootPct.toFixed(2)}%`
+);
+
+assert(
+  (mtMetrics.riseTimeSec ?? 0) > 30.0,
+  "Multi-Tank h2 rise time is substantially slower (>30s) than single-tank (9.7s)",
+  `Got ${(mtMetrics.riseTimeSec ?? 0).toFixed(2)}s`
+);
+
+// Heat Exchanger Dead-Time degradation (0.0s vs 3.0s)
+const hex0 = simulateHeatExchanger(2.1, 0.35, 0.1, 60, { deadTimeSeconds: 0.0 });
+const hex0Metrics = computeMetrics(hex0, 60);
+
+const hex3 = simulateHeatExchanger(2.1, 0.35, 0.1, 60, { deadTimeSeconds: 3.0 });
+const hex3Metrics = computeMetrics(hex3, 60);
+
+assert(
+  hex3Metrics.overshootPct > hex0Metrics.overshootPct,
+  "Heat Exchanger with 3.0s dead time has higher overshoot than zero-delay baseline",
+  `0s: ${hex0Metrics.overshootPct.toFixed(2)}% vs 3s: ${hex3Metrics.overshootPct.toFixed(2)}%`
+);
+
+const peakHex0 = Math.max(...hex0);
+const peakHex3 = Math.max(...hex3);
+assert(
+  peakHex3 > peakHex0,
+  "Heat Exchanger with 3.0s dead time achieves higher peak outlet temperature than zero-delay baseline",
+  `0s Peak: ${peakHex0.toFixed(2)}°C vs 3s Peak: ${peakHex3.toFixed(2)}°C`
 );
 
 // -----------------------------------------------------------------------------
